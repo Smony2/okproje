@@ -21,3 +21,6 @@ yarn-error.log
 /.ftpquota
 /.idea
 /.well-known
+
+/public/uploads
+/public/upload
