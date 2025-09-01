@@ -53,6 +53,256 @@
         .signal-bars .bar.active {
             background: #2ecc71;
         }
+        
+        /* Enhanced Chat UI - Modern but Compatible */
+        .chat-message-list {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f1f5f9;
+            background: #f8fafc;
+            padding: 20px !important;
+        }
+        
+        .chat-message-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-message-list::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+        
+        .chat-message-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .chat-message-list::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Enhanced Message Styling */
+        .chat-single-message {
+            margin-bottom: 16px;
+            animation: messageSlide 0.3s ease-out;
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+        }
+        
+        .chat-single-message.right {
+            flex-direction: row-reverse;
+            justify-content: flex-start;
+        }
+        
+        .chat-single-message.left {
+            justify-content: flex-start;
+        }
+        
+        .chat-single-message.right .chat-message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px 20px 5px 20px;
+            box-shadow: 0 3px 15px rgba(102, 126, 234, 0.3);
+            max-width: 75%;
+            word-wrap: break-word;
+            padding: 12px 18px;
+            position: relative;
+        }
+        
+        .chat-single-message.left .chat-message-content {
+            background: white;
+            color: #374151;
+            border-radius: 20px 20px 20px 5px;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e5e7eb;
+            max-width: 75%;
+            word-wrap: break-word;
+            padding: 12px 18px;
+            position: relative;
+        }
+        
+        /* System Messages Enhancement */
+        .chat-single-message.center .chat-message-content {
+            background: rgba(102, 126, 234, 0.1) !important;
+            color: #667eea !important;
+            border: 1px solid rgba(102, 126, 234, 0.2) !important;
+            text-align: center;
+            font-size: 13px;
+            padding: 8px 16px !important;
+            border-radius: 15px !important;
+            max-width: 300px !important;
+            margin: 0 auto;
+            box-shadow: none !important;
+        }
+        
+        @keyframes messageSlide {
+            from { opacity: 0; transform: translateY(8px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        /* Avatar Enhancements */
+        .chat-single-message .img {
+            flex-shrink: 0;
+        }
+        
+        .chat-single-message .img img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #e5e7eb;
+            transition: all 0.2s ease;
+        }
+        
+        .chat-single-message.right .img img {
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        /* Time Display Enhancement */
+        .chat-time {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 4px;
+            text-align: right;
+        }
+        
+        .chat-single-message.left .chat-time {
+            text-align: left;
+        }
+        
+        /* Input Area Enhancement */
+        .chat-message-box {
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .chat-message-box input[type="text"] {
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+        
+        .chat-message-box input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .chat-message-box button:hover {
+            transform: translateY(-1px);
+            transition: all 0.2s ease;
+        }
+        
+        .chat-message-box .btn-primary-600:hover {
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* Sidebar Enhancement */
+        .chat-sidebar-single {
+            transition: all 0.2s ease;
+            border-radius: 10px;
+            margin: 2px 8px;
+        }
+        
+        .chat-sidebar-single:hover {
+            background: #f1f5f9;
+            transform: translateX(3px);
+        }
+        
+        .chat-sidebar-single.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: none;
+        }
+
+        /* Sidebar readability improvements */
+        .chat-sidebar-single .img img {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        .chat-sidebar-single:not(.active):not(.top-profile) .info h6 {
+            color: #1f2937;
+            font-weight: 600;
+        }
+        .chat-sidebar-single:not(.active):not(.top-profile) .info p {
+            color: #6b7280;
+            font-size: 12px;
+        }
+        .chat-sidebar-single.active .info h6,
+        .chat-sidebar-single.active .info p {
+            color: #ffffff !important;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+
+        }
+        /* Force all text inside active/top-profile to white */
+        .chat-sidebar-single.active .info *,
+        .chat-sidebar-single.active.top-profile .info * {
+            color: #ffffff !important;
+
+
+        }
+        /* Ensure top-profile (gradient card) is readable */
+        .chat-sidebar-single.top-profile .info h6,
+        .chat-sidebar-single.top-profile .info p {
+            color: #ffffff !important;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+        }
+        /* Force Online text (text-success) to white on gradient/active */
+        .chat-sidebar-single.top-profile .info p.text-success,
+        .chat-sidebar-single.active .info p.text-success {
+            color: #ffffff !important;
+        }
+        .chat-sidebar-single.active .badge {
+            background: #ffffff;
+            color: #5b6be1;
+        }
+        
+        /* Attachment Styling */
+        .attachment-list {
+            margin-top: 8px;
+        }
+        
+        .attachment-list a {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 6px 12px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 12px;
+            margin: 2px 0;
+            transition: all 0.2s ease;
+        }
+        
+        .attachment-list a:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+        
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            .chat-message-list {
+                padding: 12px !important;
+                background: #f8fafc;
+            }
+            
+            .chat-single-message.right .chat-message-content,
+            .chat-single-message.left .chat-message-content {
+                max-width: 85%;
+                font-size: 14px;
+                padding: 10px 14px;
+            }
+            
+            .chat-single-message .img img {
+                width: 28px;
+                height: 28px;
+            }
+            
+            .chat-single-message {
+                margin-bottom: 12px;
+            }
+        }
     </style>
 @endsection
 @section('main')
@@ -60,7 +310,7 @@
         <!-- Sidebar (visible only on desktop) -->
         <div class="col-lg-3 col-md-5 d-none d-md-block">
             <div class="chat-sidebar card border-0 shadow-sm rounded-3 h-100">
-                <div class="chat-sidebar-single active top-profile p-3">
+                <div class="chat-sidebar-single active top-profile p-3 text-white">
                     <div class="d-flex justify-content-between align-items-center w-100">
                         <div class="d-flex align-items-center gap-2">
                             <div class="flex-shrink-0 img">
@@ -71,8 +321,8 @@
                                 @endif
                             </div>
                             <div class="info">
-                                <h6 class="mb-0 fw-semibold">{{ auth('avukat')->user()->username }}</h6>
-                                <p class="mb-0 small {{ auth('avukat')->user()->is_active ? 'text-success' : 'text-muted' }}">
+                                <h6 class="mb-0 fw-semibold" style="color:#ffffff !important;">{{ auth('avukat')->user()->username }}</h6>
+                                <p class="mb-0 small {{ auth('avukat')->user()->is_active ? 'text-success' : 'text-muted' }}" style="color:#ffffff !important;">
                                     {{ auth('avukat')->user()->is_active ? 'Online' : 'Son Görülme: ' . (auth('avukat')->user()->last_active_at ? \Carbon\Carbon::parse(auth('avukat')->user()->last_active_at)->diffForHumans() : 'Bilinmiyor') }}
                                 </p>
                             </div>
@@ -90,7 +340,7 @@
                 </div>
                 <div class="chat-all-list" data-simplebar style="height: calc(100vh - 220px);">
                     @foreach($katiplerWithConversations as $katip)
-                        <div class="chat-sidebar-single {{ $katip->conversation && $currentConversation && $katip->conversation->id == $currentConversation->id ? 'active' : ($katip->conversation ? '' : 'new-chat') }}"
+                        <div class="chat-sidebar-single {{ $katip->conversation && $currentConversation && $katip->conversation->id == $currentConversation->id ? 'active text-white' : ($katip->conversation ? '' : 'new-chat') }}"
                              data-user-id="{{ $katip->id }}"
                              data-user-type="Katip"
                              onclick="window.location.href='{{ $katip->conversation ? route('avukat.chat.show', $katip->conversation->id) : route('avukat.chat.index', ['katip_id' => $katip->id]) }}'">
@@ -131,7 +381,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
                     </div>
                     <div class="modal-body p-3">
-                        <div class="chat-sidebar-single active top-profile p-3">
+                        <div class="chat-sidebar-single active top-profile p-3 text-white">
                             <div class="d-flex justify-content-between align-items-center w-100">
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="flex-shrink-0 img">
