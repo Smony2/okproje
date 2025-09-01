@@ -24,6 +24,25 @@
 
     <!-- Pusher JS -->
     <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
+    <!-- LiveKit UMD (global) -->
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js" data-livekit="1"></script>
+    <script>
+        (function(){
+            var c = window.LivekitClient || window.livekitClient || window.LiveKitClient || window.livekit;
+            if (c && c.default && !c.connect && typeof c.default.connect === 'function') c = c.default;
+            if (c) window.LivekitClient = c;
+        })();
+    </script>
+    <script type="module">
+        try {
+            const m = await import('https://cdn.jsdelivr.net/npm/livekit-client@2/+esm');
+            if (m && typeof m.connect === 'function') {
+                window.LivekitClient = m;
+            }
+        } catch (e) {
+            // ignore; UMD fallback above
+        }
+    </script>
 
     <style>
         /* Mevcut stiller */

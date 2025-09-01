@@ -76,8 +76,10 @@ class KatipChatController extends Controller
                     'sender_type'   => $message->sender_type,
                     'sender_id'     => $message->sender_id,
                     'message'       => $message->message,
+                    'type'          => $message->type,
                     'created_at'    => $message->created_at->format('H:i'),
                     'sender_avatar' => $message->sender_type === 'Katip' ? $katipAvatarUrl : $avukatAvatarUrl,
+                    'call_metadata' => $message->call_metadata,
                     'attachments'   => $message->attachments->map(function ($attachment) {
                         return [
                             'file_name' => $attachment->file_name,

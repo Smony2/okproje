@@ -18,12 +18,15 @@ class Message extends Model
         'receiver_id',
         'content',
         'conversation_id',
-        'message'
+        'message',
+        'type',
+        'call_metadata'
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'call_metadata' => 'array',
     ];
 
     public function sender()

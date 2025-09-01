@@ -60,7 +60,9 @@ class MessageSent implements ShouldBroadcast
             'sender_name'     => $sender->username, // veya ->name, modele göre
             'sender_avatar'   => $avatarUrl,
             'message'         => $this->message->message,
+            'type'            => $this->message->type,
             'created_at'      => $this->message->created_at->format('H:i'),
+            'call_metadata'   => $this->message->call_metadata,
             'attachments'     => $this->message->attachments->map(function ($attachment) {
                 return [
                     'file_name' => $attachment->file_name,

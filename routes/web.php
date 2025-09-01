@@ -28,15 +28,27 @@ Route::middleware(['web', 'auth:avukat'])->prefix('avukat/mesajlar')->name('avuk
     Route::post('/{conversation}/okundu-isaretle', [\App\Http\Controllers\Avukat\AvukatChatController::class, 'markMessagesAsRead'])->name('mark.read'); // YENİ
     Route::post('/baslat', [\App\Http\Controllers\Avukat\AvukatChatController::class, 'startConversation'])->name('start');
     Route::post('/yeni-sohbet', [\App\Http\Controllers\Avukat\AvukatChatController::class, 'newchat'])->name('newchat');
+
+    // Call routes
+    Route::post('/{conversation}/call/invite', [\App\Http\Controllers\CallController::class, 'invite'])->name('call.invite');
+    Route::post('/{conversation}/call/accept', [\App\Http\Controllers\CallController::class, 'accept'])->name('call.accept');
+    Route::post('/{conversation}/call/token', [\App\Http\Controllers\CallController::class, 'token'])->name('call.token');
+    Route::post('/{conversation}/call/end', [\App\Http\Controllers\CallController::class, 'end'])->name('call.end');
 });
 
-Route::middleware(['auth:katip'])->prefix('katip/mesajlar')->name('katip.chat.')->group(function () {
+Route::middleware(['web', 'auth:katip'])->prefix('katip/mesajlar')->name('katip.chat.')->group(function () {
     Route::get('/', [\App\Http\Controllers\Katip\KatipChatController::class, 'index'])->name('index');
     Route::get('/{conversation}', [\App\Http\Controllers\Katip\KatipChatController::class, 'show'])->name('show');
     Route::post('/{conversation}/mesaj-gonder', [\App\Http\Controllers\Katip\KatipChatController::class, 'sendMessage'])->name('send');
     Route::post('/{conversation}/okundu-isaretle', [\App\Http\Controllers\Katip\KatipChatController::class, 'markMessagesAsRead'])->name('mark.read'); // YENİ
     Route::post('/baslat', [\App\Http\Controllers\Katip\KatipChatController::class, 'startConversation'])->name('start');
     Route::post('/yeni-sohbet', [\App\Http\Controllers\Katip\KatipChatController::class, 'newchat'])->name('newchat');
+
+    // Call routes
+    Route::post('/{conversation}/call/invite', [\App\Http\Controllers\CallController::class, 'invite'])->name('call.invite');
+    Route::post('/{conversation}/call/accept', [\App\Http\Controllers\CallController::class, 'accept'])->name('call.accept');
+    Route::post('/{conversation}/call/token', [\App\Http\Controllers\CallController::class, 'token'])->name('call.token');
+    Route::post('/{conversation}/call/end', [\App\Http\Controllers\CallController::class, 'end'])->name('call.end');
 });
 
 
