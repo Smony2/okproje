@@ -7,7 +7,55 @@
 
 @section('cssler')
     <link rel="stylesheet" href="{{ asset('assets/css/chat12.css') }}">
-
+    <style>
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        .advanced-notification {
+            transition: all 0.3s ease;
+        }
+        
+        .call-controls button:hover {
+            transform: scale(1.05);
+            transition: transform 0.2s ease;
+        }
+        
+        .call-controls button:active {
+            transform: scale(0.95);
+        }
+        
+        .connection-quality {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+        
+        .signal-bars {
+            display: flex;
+            gap: 2px;
+            align-items: end;
+        }
+        
+        .signal-bars .bar {
+            width: 3px;
+            height: 8px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 1px;
+            transition: all 0.3s ease;
+        }
+        
+        .signal-bars .bar.active {
+            background: #2ecc71;
+        }
+    </style>
 @endsection
 
 @section('main')
@@ -532,6 +580,191 @@
                 localStorage.removeItem('activeCall');
             } catch (e) {
                 console.error('Error clearing active call:', e);
+            }
+        }
+
+        // Call timer variables
+        let callStartTime = null;
+        let callTimerInterval = null;
+        let isMuted = false;
+        let callSeconds = 0;
+
+        function startCallTimer() {
+            if (callTimerInterval) clearInterval(callTimerInterval);
+            
+            callStartTime = Date.now();
+            callSeconds = 0;
+            
+            callTimerInterval = setInterval(() => {
+                callSeconds = Math.floor((Date.now() - callStartTime) / 1000);
+                const minutes = Math.floor(callSeconds / 60);
+                const seconds = callSeconds % 60;
+                const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Update timer in call card
+                const timerElement = document.getElementById('callCardTimer');
+                if (timerElement) {
+                    timerElement.textContent = timeString;
+                }
+                
+                // Update timer in any other locations
+                const callTimer = document.getElementById('callTimer');
+                if (callTimer) {
+                    callTimer.textContent = timeString;
+                }
+            }, 1000);
+            
+            console.log('⏰ Call timer started');
+        }
+
+        function stopCallTimer() {
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+                console.log('⏰ Call timer stopped');
+            }
+        }
+
+        function toggleMute() {
+            try {
+                if (lkRoom && lkRoom.localParticipant) {
+                    const audioTrack = lkRoom.localParticipant.getTrackBySource('microphone');
+                    if (audioTrack) {
+                        if (isMuted) {
+                            audioTrack.unmute();
+                            isMuted = false;
+                            console.log('🎤 Microphone unmuted');
+                            showAdvancedNotification('Mikrofon Açıldı', 'Sesiniz artık duyuluyor', 'success', 2000);
+                        } else {
+                            audioTrack.mute();
+                            isMuted = true;
+                            console.log('🔇 Microphone muted');
+                            showAdvancedNotification('Mikrofon Kapatıldı', 'Sesiniz artık duyulmuyor', 'info', 2000);
+                        }
+                        
+                        // Update mute button icon
+                        const muteBtn = document.querySelector('[onclick="toggleMute()"]');
+                        if (muteBtn) {
+                            const icon = muteBtn.querySelector('iconify-icon');
+                            if (icon) {
+                                icon.setAttribute('icon', isMuted ? 'mdi:microphone-off' : 'mdi:microphone');
+                            }
+                            muteBtn.style.background = isMuted ? 'rgba(255, 71, 87, 0.3)' : 'rgba(255,255,255,0.2)';
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error toggling mute:', error);
+                showAdvancedNotification('Hata', 'Mikrofon durumu değiştirilemedi', 'error', 3000);
+            }
+        }
+
+        function showAdvancedNotification(title, message, type = 'info', duration = 4000) {
+            const notification = document.createElement('div');
+            notification.className = `advanced-notification ${type}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                max-width: 300px;
+                background: ${type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : type === 'warning' ? '#f39c12' : '#3498db'};
+                color: white;
+                padding: 15px;
+                border-radius: 10px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                z-index: 10000;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                animation: slideInRight 0.3s ease-out;
+            `;
+            
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <iconify-icon icon="${getNotificationIcon(type)}" style="font-size: 20px;"></iconify-icon>
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 2px;">${title}</div>
+                        <div style="font-size: 13px; opacity: 0.9;">${message}</div>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; margin-left: auto;">×</button>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after duration
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.style.animation = 'slideOutRight 0.3s ease-in';
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, duration);
+        }
+
+        function getNotificationIcon(type) {
+            switch (type) {
+                case 'success': return 'solar:check-circle-linear';
+                case 'error': return 'solar:close-circle-linear';
+                case 'warning': return 'solar:danger-triangle-linear';
+                case 'info': return 'solar:info-circle-linear';
+                default: return 'solar:bell-linear';
+            }
+        }
+
+        function forceCloseIncomingCallModal() {
+            console.log('🔧 Force closing incoming call modal...');
+            
+            try {
+                // 1. Bootstrap modal instance'ı kapat
+                const modalElement = document.getElementById('incomingCallModal');
+                if (modalElement) {
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) {
+                        modal.hide();
+                        modal.dispose(); // Modal instance'ını tamamen temizle
+                    }
+                }
+                
+                // 2. Tüm backdrop'ları kaldır
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                backdrops.forEach(backdrop => {
+                    console.log('Removing backdrop:', backdrop);
+                    backdrop.remove();
+                });
+                
+                // 3. Body'den modal class'ları temizle
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+                
+                // 4. Modal'ı gizle
+                if (modalElement) {
+                    modalElement.style.display = 'none';
+                    modalElement.classList.remove('show');
+                    modalElement.setAttribute('aria-hidden', 'true');
+                    modalElement.removeAttribute('aria-modal');
+                }
+                
+                // 5. Overlay'leri temizle
+                const overlays = document.querySelectorAll('.modal, .fade, [style*="background"]');
+                overlays.forEach(overlay => {
+                    if (overlay.style.backgroundColor || overlay.classList.contains('modal-backdrop')) {
+                        overlay.remove();
+                    }
+                });
+                
+                console.log('✅ Modal cleanup completed');
+                
+            } catch (e) {
+                console.error('❌ Error during modal cleanup:', e);
+                
+                // Son çare: Tüm modal elementlerini zorla temizle
+                try {
+                    const allBackdrops = document.querySelectorAll('[class*="backdrop"], [style*="background"], .modal-backdrop, .fade');
+                    allBackdrops.forEach(el => el.remove());
+                    document.body.classList.remove('modal-open');
+                    document.body.style.cssText = '';
+                } catch (e2) {
+                    console.error('❌ Emergency cleanup failed:', e2);
+                }
             }
         }
 
@@ -1070,8 +1303,8 @@
         let ringtoneTimer = null;
         // Call UI state
         let callTimer = null;
-        let callSeconds = 0;
-        let isMuted = false;
+        // callSeconds already defined above
+        // let isMuted already defined above
         const callActionBtn = document.getElementById('callActionBtn');
         const callActionIcon = document.getElementById('callActionIcon');
         const remoteAudio = document.getElementById('remoteAudio');
@@ -1139,21 +1372,7 @@
             try { if (ringtoneAudio) { ringtoneAudio.pause(); ringtoneAudio.currentTime = 0; } } catch {}
         }
 
-        function startCallTimer() {
-            try { if (callTimer) clearInterval(callTimer); } catch {}
-            callSeconds = 0;
-            callTimer = setInterval(() => {
-                callSeconds += 1;
-                const mm = String(Math.floor(callSeconds / 60)).padStart(2, '0');
-                const ss = String(callSeconds % 60).padStart(2, '0');
-                try { const c = document.getElementById('callCardTimer'); if (c) c.textContent = mm + ':' + ss; } catch {}
-            }, 1000);
-        }
-
-        function stopCallTimer() {
-            try { if (callTimer) clearInterval(callTimer); } catch {}
-            callTimer = null;
-        }
+        // startCallTimer and stopCallTimer functions moved to above
 
         function ensureCallCardContainer() {
             const list = document.querySelector('.chat-message-list');
@@ -1278,24 +1497,7 @@
             // Output device functionality removed
         }
 
-        async function toggleMute() {
-            try {
-                isMuted = !isMuted;
-                if (lkRoom && lkRoom.localParticipant) {
-                    await lkRoom.localParticipant.setMicrophoneEnabled(!isMuted);
-                    console.log('Microphone toggled:', !isMuted);
-                }
-                // Update mute button icon in call card
-                const muteBtn = document.querySelector('#callCard button[onclick="toggleMute()"] iconify-icon');
-                if (muteBtn) muteBtn.setAttribute('icon', isMuted ? 'mdi:microphone-off' : 'mdi:microphone');
-                
-                // Show notification
-                showNotification(isMuted ? 'Mikrofon kapatıldı' : 'Mikrofon açıldı', 'info');
-            } catch (e) {
-                console.error('Toggle mute failed:', e);
-                showNotification('Mikrofon durumu değiştirilemedi', 'danger');
-            }
-        }
+        // toggleMute function moved to above
 
         async function fetchToken(room) {
             const res = await fetch(`/katip/mesajlar/${currentConversationId}/call/token`, {
@@ -1399,24 +1601,8 @@
                     }
                 } catch {}
                 
-                // Close the modal
-                try {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('incomingCallModal'));
-                    if (modal) {
-                        modal.hide();
-                    }
-                    // Remove backdrop manually
-                    const backdrop = document.querySelector('.modal-backdrop');
-                    if (backdrop) {
-                        backdrop.remove();
-                    }
-                    // Remove modal-open class from body
-                    document.body.classList.remove('modal-open');
-                    document.body.style.overflow = '';
-                    document.body.style.paddingRight = '';
-                } catch (e) {
-                    console.warn('Failed to close modal:', e);
-                }
+                // Close the modal with comprehensive cleanup
+                forceCloseIncomingCallModal();
                 
                 stopRingtone();
                 
