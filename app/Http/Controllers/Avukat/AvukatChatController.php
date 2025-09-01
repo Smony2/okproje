@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 class AvukatChatController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = auth('avukat')->user();
 
@@ -38,7 +38,69 @@ class AvukatChatController extends Controller
             return $katip;
         });
 
-        return view('avukat.mesajlasma.panel', compact('katiplerWithConversations'));
+        // Hangi sohbetin gösterileceğini belirle
+        $targetConversation = null;
+        
+        if ($request->has('conversation_id')) {
+            // Belirli bir sohbet istendi
+            $targetConversation = Conversation::where('avukat_id', $user->id)
+                ->find($request->conversation_id);
+        } elseif ($request->has('katip_id')) {
+            // Belirli bir katiple sohbet istendi
+            $katipId = $request->katip_id;
+            $targetConversation = Conversation::where('avukat_id', $user->id)
+                ->where('katip_id', $katipId)
+                ->first();
+            
+            // Eğer sohbet yoksa oluştur
+            if (!$targetConversation) {
+                $targetConversation = Conversation::create([
+                    'avukat_id' => $user->id,
+                    'katip_id' => $katipId,
+                ]);
+            }
+        } else {
+            // İlk aktif sohbeti bul
+            foreach ($katiplerWithConversations as $katip) {
+                if ($katip->conversation) {
+                    $targetConversation = $katip->conversation;
+                    break;
+                }
+            }
+
+            // Eğer hiç sohbet yoksa, ilk katiple sohbet oluştur
+            if (!$targetConversation && $katiplerWithConversations->count() > 0) {
+                $firstKatip = $katiplerWithConversations->first();
+                $targetConversation = Conversation::create([
+                    'avukat_id' => $user->id,
+                    'katip_id' => $firstKatip->id,
+                ]);
+                $firstKatip->conversation = $targetConversation;
+            }
+        }
+
+        // Sohbet detaylarını al
+        $currentConversation = null;
+        $currentMessages = collect();
+        $currentKatip = null;
+
+        if ($targetConversation) {
+            $currentConversation = Conversation::with([
+                'messages' => fn($q) => $q->orderBy('created_at', 'asc')->with('attachments'),
+                'katip.avatar',
+                'avukat.avatar',
+            ])->find($targetConversation->id);
+
+            $currentKatip = $currentConversation->katip;
+            $currentMessages = $currentConversation->messages;
+        }
+
+        return view('avukat.mesajlasma.panel', compact(
+            'katiplerWithConversations', 
+            'currentConversation', 
+            'currentMessages', 
+            'currentKatip'
+        ));
     }
 
 
@@ -202,51 +264,8 @@ class AvukatChatController extends Controller
 
     public function show($id)
     {
-        $conversation = Conversation::with([
-            'messages' => fn($q) => $q->orderBy('created_at', 'asc')->with('attachments'),
-            'katip.avatar',
-            'avukat.avatar',
-        ])->findOrFail($id);
-
-        $katip = $conversation->katip;
-        $avukat = $conversation->avukat;
-
-        $katipAvatarUrl = $katip->avatar
-            ? asset($katip->avatar->path)
-            : asset('upload/no_image.jpg');
-
-        $avukatAvatarUrl = $avukat->avatar
-            ? asset($avukat->avatar->path)
-            : asset('upload/no_image.jpg');
-
-        return response()->json([
-            'conversation_id' => $conversation->id,
-            'katip_name'      => $katip->username,
-            'katip_avatar'    => $katipAvatarUrl,
-            'katip_is_active' => $katip->is_active,
-            'katip_last_active_at' => $katip->last_active_at ? $katip->last_active_at->toDateTimeString() : null,
-            'avukat_avatar'   => $avukatAvatarUrl,
-            'avukat_is_active' => $avukat->is_active,
-            'messages'        => $conversation->messages->map(function ($message) use ($katipAvatarUrl, $avukatAvatarUrl) {
-                return [
-                    'id'            => $message->id,
-                    'sender_type'   => $message->sender_type,
-                    'sender_id'     => $message->sender_id,
-                    'message'       => $message->message,
-                    'type'          => $message->type,
-                    'created_at'    => $message->created_at->format('H:i'),
-                    'sender_avatar' => $message->sender_type === 'Avukat' ? $avukatAvatarUrl : $katipAvatarUrl,
-                    'call_metadata' => $message->call_metadata,
-                    'attachments'   => $message->attachments->map(function ($attachment) {
-                        return [
-                            'file_name' => $attachment->file_name,
-                            'file_size' => number_format($attachment->file_size / 1024, 2), // KB cinsine çevir
-                            'file_type' => $attachment->file_type,
-                            'url'       => asset($attachment->file_path),
-                        ];
-                    })->toArray(),
-                ];
-            })->toArray(),
-        ]);
+        // Belirli bir sohbeti göstermek için index metodunu çağır
+        $request = request()->merge(['conversation_id' => $id]);
+        return $this->index($request);
     }
 }

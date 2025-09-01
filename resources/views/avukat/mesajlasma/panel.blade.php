@@ -29,25 +29,7 @@
                                 </p>
                             </div>
                         </div>
-                        <div class="action">
-                            <div class="btn-group">
-                                <button type="button" class="text-secondary-light text-xl" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
-                                    <iconify-icon icon="bi:three-dots"></iconify-icon>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-lg-end border">
-                                    <li>
-                                        <a href="{{ route('avukat.profile.edit') }}" class="dropdown-item rounded text-secondary-light bg-hover-neutral-200 text-hover-neutral-900 d-flex align-items-center gap-2">
-                                            <iconify-icon icon="fluent:person-32-regular"></iconify-icon> Profil
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="#" class="dropdown-item rounded text-secondary-light bg-hover-neutral-200 text-hover-neutral-900 d-flex align-items-center gap-2">
-                                            <iconify-icon icon="carbon:settings"></iconify-icon> Ayarlar
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
+
                     </div>
                 </div>
                 <div class="pt-1 pb-1">
@@ -60,10 +42,10 @@
                 </div>
                 <div class="chat-all-list" data-simplebar style="height: calc(100vh - 220px);">
                     @foreach($katiplerWithConversations as $katip)
-                        <div class="chat-sidebar-single {{ $katip->conversation ? ($loop->first ? 'active' : '') : 'new-chat' }}"
+                        <div class="chat-sidebar-single {{ $katip->conversation && $currentConversation && $katip->conversation->id == $currentConversation->id ? 'active' : ($katip->conversation ? '' : 'new-chat') }}"
                              data-user-id="{{ $katip->id }}"
                              data-user-type="Katip"
-                             onclick="{{ $katip->conversation ? 'loadConversation(' . $katip->conversation->id . ', \'' . route('avukat.chat.show', $katip->conversation->id) . '\', this)' : 'startNewConversation(' . $katip->id . ')' }}">
+                             onclick="window.location.href='{{ $katip->conversation ? route('avukat.chat.show', $katip->conversation->id) : route('avukat.chat.index', ['katip_id' => $katip->id]) }}'">
                             <div class="d-flex justify-content-between align-items-center w-100">
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="flex-shrink-0 img">
@@ -128,10 +110,10 @@
                         </div>
                         <div class="chat-all-list" data-simplebar style="height: calc(100vh - 220px);">
                             @foreach($katiplerWithConversations as $katip)
-                                <div class="chat-sidebar-single {{ $katip->conversation ? ($loop->first ? 'active' : '') : 'new-chat' }}"
+                                <div class="chat-sidebar-single {{ $katip->conversation && $currentConversation && $katip->conversation->id == $currentConversation->id ? 'active' : ($katip->conversation ? '' : 'new-chat') }}"
                                      data-user-id="{{ $katip->id }}"
                                      data-user-type="Katip"
-                                     onclick="{{ $katip->conversation ? 'loadConversation(' . $katip->conversation->id . ', \'' . route('avukat.chat.show', $katip->conversation->id) . '\', this)' : 'startNewConversation(' . $katip->id . ')' }}; if(window.innerWidth < 768) { bootstrap.Modal.getInstance(document.getElementById('chatModal')).hide(); }">
+                                     onclick="window.location.href='{{ $katip->conversation ? route('avukat.chat.show', $katip->conversation->id) : route('avukat.chat.index', ['katip_id' => $katip->id]) }}'">
                                     <div class="d-flex justify-content-between align-items-center w-100">
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="flex-shrink-0 img">
@@ -164,9 +146,169 @@
 
         <!-- Main Chat Area -->
         <div class="col-lg-9 col-md-7">
-
             <div class="chat-main card border-0 shadow-sm rounded-3 h-100 d-flex flex-column">
-                <div id="chat-area-content" class="flex-grow-1"></div>
+                @if($currentConversation && $currentKatip)
+                    <!-- Chat Header -->
+                    <div class="chat-sidebar-single-ust p-1">
+                        <div class="d-flex justify-content-between align-items-center w-100">
+                            <button type="button" class="btn btn-link text-muted d-md-none me-2 p-0" data-bs-toggle="modal" data-bs-target="#chatModal">
+                                <iconify-icon icon="ph:arrow-left" class="fs-5"></iconify-icon>
+                            </button>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="flex-shrink-0 img">
+                                    @if($currentKatip->avatar)
+                                        <img src="{{ asset($currentKatip->avatar->path) }}" alt="Avatar" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%;">
+                                    @else
+                                        <img src="{{ asset('upload/no_image.jpg') }}" alt="Avatar" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%;">
+                                    @endif
+                                </div>
+                                <div class="info">
+                                    <h6 class="text-md mb-0">{{ $currentKatip->username }}</h6>
+                                    <p class="mb-0 small {{ $currentKatip->is_active ? 'text-success' : 'text-muted' }}">
+                                        {{ $currentKatip->is_active ? 'Online' : 'Son Görülme: ' . ($currentKatip->last_active_at ? \Carbon\Carbon::parse($currentKatip->last_active_at)->diffForHumans() : 'Bilinmiyor') }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="action d-inline-flex align-items-center gap-3">
+                                <button id="callActionBtn" type="button" class="text-xl text-primary-light" title="Ara">
+                                    <iconify-icon id="callActionIcon" icon="mi:call"></iconify-icon>
+                                </button>
+                                <div class="btn-group">
+                                    <button type="button" class="text-primary-light text-xl" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+                                        <iconify-icon icon="tabler:dots-vertical"></iconify-icon>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-lg-end border">
+                                        <li>
+                                            <button class="dropdown-item rounded text-secondary-light bg-hover-neutral-200 text-hover-neutral-900 d-flex align-items-center gap-2" type="button">
+                                                <iconify-icon icon="mdi:clear-circle-outline"></iconify-icon> Tümünü Temizle
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button class="dropdown-item rounded text-secondary-light bg-hover-neutral-200 text-hover-neutral-900 d-flex align-items-center gap-2" type="button">
+                                                <iconify-icon icon="ic:baseline-block"></iconify-icon> Engelle
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Messages -->
+                    <div class="chat-message-list p-3 flex-grow-1" style="overflow-y: auto; height: calc(100vh - 180px);">
+                        @foreach($currentMessages as $message)
+                            @php
+                                $isAvukat = $message->sender_type === 'Avukat';
+                                $cls = $isAvukat ? 'right' : 'left';
+                                $avatar = $isAvukat ? 
+                                    (auth('avukat')->user()->avatar ? asset(auth('avukat')->user()->avatar->path) : asset('upload/no_image.jpg')) : 
+                                    ($currentKatip->avatar ? asset($currentKatip->avatar->path) : asset('upload/no_image.jpg'));
+                            @endphp
+
+                            @if($message->type && Str::startsWith($message->type, 'call_'))
+                                <!-- Call Message -->
+                                <div class="chat-single-message mb-3" data-message-id="{{ $message->id }}" style="justify-content: center;">
+                                    <div class="chat-message-content" style="max-width: 300px; text-align: center;">
+                                        <div class="mb-0 system-notification">
+                                                                                         @php
+                                                $metadata = $message->call_metadata ?? [];
+                                                $status = $metadata['status'] ?? 'initiated';
+                                                $duration = $metadata['duration'] ?? 0;
+                                                
+                                                $callIcon = ($status === 'answered') ? '📞' : 
+                                                           (($status === 'ended') ? '📞' : 
+                                                           (($status === 'missed') ? '📞❌' : '📞'));
+                                                $callText = ($status === 'answered') ? 'Görüşme tamamlandı' :
+                                                           (($status === 'ended') ? 'Görüşme sonlandırıldı' :
+                                                           (($status === 'missed') ? 'Cevapsız arama' :
+                                                           'Arama başlatıldı'));
+                                                
+                                                $durationText = $duration > 0 ? ' · ' . floor($duration / 60) . ':' . str_pad($duration % 60, 2, '0', STR_PAD_LEFT) : '';
+                                            @endphp
+                                            {{ $callIcon }} {{ $callText }}{{ $durationText }}
+                                        </div>
+                                        <p class="chat-time mb-0">
+                                            <span>{{ $message->created_at ? $message->created_at->format('H:i') : 'Bilinmeyen zaman' }}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            @else
+                                <!-- Regular Message -->
+                                <div class="chat-single-message {{ $cls }} mb-3" data-message-id="{{ $message->id }}">
+                                    @if($cls === 'left')
+                                        <img src="{{ $avatar }}" alt="Avatar" class="avatar-lg object-fit-cover rounded-circle">
+                                    @endif
+                                    <div class="chat-message-content">
+                                        @if($message->message)
+                                            <div class="mb-0 {{ Str::contains($message->message, '<') ? 'system-notification' : 'emoji' }}">
+                                                {!! $message->message !!}
+                                            </div>
+                                        @endif
+                                        
+                                        @if($message->attachments && $message->attachments->count() > 0)
+                                            <div class="attachment-list mt-2">
+                                                @foreach($message->attachments as $attachment)
+                                                    <a href="{{ asset($attachment->file_path) }}" target="_blank" style="color: {{ $cls === 'right' ? '#bfdbfe' : '#667eea' }}; text-decoration: none;">
+                                                        <iconify-icon icon="ph:file"></iconify-icon>
+                                                        {{ $attachment->file_name }} ({{ number_format($attachment->file_size / 1024, 2) }} KB)
+                                                    </a>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                        
+                                        <p class="chat-time mb-0">
+                                            <span>{{ $message->created_at ? $message->created_at->format('H:i') : 'Bilinmeyen zaman' }}</span>
+                                        </p>
+                                    </div>
+                                    @if($cls === 'right')
+                                        <img src="{{ $avatar }}" alt="Avatar" class="avatar-lg object-fit-cover rounded-circle">
+                                    @endif
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+
+                    <!-- Chat Form -->
+                    <form class="chat-message-box p-3 border-top" id="chat-form" enctype="multipart/form-data">
+                        <div class="d-flex align-items-center w-100">
+                            <input type="text" name="content" id="messageInput" class="form-control rounded-3 me-2" placeholder="Mesaj yaz..." style="flex: 1;">
+                            <div class="chat-message-box-action d-flex align-items-center gap-2">
+                                <input type="file" name="file" id="fileInput" style="display: none;" accept="image/*">
+                                <button type="button" class="text-xl" id="fileUploadBtn" onclick="document.getElementById('fileInput').click();">
+                                    <iconify-icon icon="solar:gallery-linear"></iconify-icon>
+                                </button>
+                                <button type="button" class="text-xl emoji-btn" id="emojiBtn">
+                                    <iconify-icon icon="ph:smiley"></iconify-icon>
+                                </button>
+                                <button type="submit" class="btn btn-sm btn-primary-600 radius-8 d-inline-flex align-items-center justify-content-center" id="sendButton">
+                                    <iconify-icon icon="f7:paperplane" style="font-size: 18px;"></iconify-icon>
+                                </button>
+                            </div>
+                        </div>
+                        <input type="hidden" name="conversation_id" value="{{ $currentConversation->id }}">
+                        <div id="emojiPanel" class="emoji-panel">
+                            <span class="emoji" data-emoji="😊">😊</span>
+                            <span class="emoji" data-emoji="👍">👍</span>
+                            <span class="emoji" data-emoji="😂">😂</span>
+                            <span class="emoji" data-emoji="😍">😍</span>
+                            <span class="emoji" data-emoji="😢">😢</span>
+                            <span class="emoji" data-emoji="😎">😎</span>
+                            <span class="emoji" data-emoji="😜">😜</span>
+                            <span class="emoji" data-emoji="😘">😘</span>
+                            <span class="emoji" data-emoji="😡">😡</span>
+                            <span class="emoji" data-emoji="😴">😴</span>
+                        </div>
+                    </form>
+                @else
+                    <!-- No Conversation Selected -->
+                    <div class="d-flex align-items-center justify-content-center h-100">
+                        <div class="text-center">
+                            <iconify-icon icon="solar:chat-round-dots-linear" style="font-size: 64px; color: #ccc;"></iconify-icon>
+                            <h5 class="mt-3 text-muted">Sohbet seçilmedi</h5>
+                            <p class="text-muted">Sohbet etmek için sol menüden bir katip seçin</p>
+                        </div>
+                    </div>
+                @endif
             </div>
             <!-- Hidden audio elements for call -->
             <audio id="remoteAudio" autoplay playsinline></audio>
@@ -302,6 +444,20 @@
                 lkRoomName = data.room;
                 // gelen davet farklı bir sohbettenden olabilir
                 window.__incomingConversationId = data.conversation_id;
+                
+                // Eğer farklı bir conversation'dan arama geliyorsa, o conversation'a git
+                if (data.conversation_id && currentConversationId !== data.conversation_id) {
+                    console.log('Redirecting to conversation:', data.conversation_id);
+                    // localStorage'a gelen arama bilgisini kaydet
+                    localStorage.setItem('incomingCall', JSON.stringify({
+                        room: data.room,
+                        conversationId: data.conversation_id,
+                        timestamp: Date.now()
+                    }));
+                    window.location.href = '{{ route('avukat.chat.show', ':id') }}'.replace(':id', data.conversation_id);
+                    return;
+                }
+                
                 startRingtone();
                 renderCallCard('incoming');
                 
@@ -363,14 +519,182 @@
                 lkToken = null;
                 if (callActionIcon) callActionIcon.setAttribute('icon', 'mi:call');
                 renderCallCard('ended');
+                clearActiveCall(); // Diğer taraf sonlandırdığında localStorage'ı temizle
             });
 
-            const first = document.querySelector('.chat-all-list .chat-sidebar-single');
-            if (first) first.click();
+            // Gelen arama var mı kontrol et (her zaman kontrol et)
+            checkForIncomingCall();
+            
+            @if($currentConversation)
+                // Mevcut sohbet için Pusher'ı setup et
+                setupPusherForConversation({{ $currentConversation->id }});
+                setupEmojiPanel();
+                setupFileUpload();
+                setupMessageForm();
+                setupCallHeaderControls();
+                setCurrentConversation({{ $currentConversation->id }});
+                
+                // Mesaj listesini en alta scroll et
+                const msgList = document.querySelector('.chat-message-list');
+                if (msgList) msgList.scrollTop = msgList.scrollHeight;
+                
+                // Aktif arama var mı kontrol et (sayfa yenilendiyse tekrar bağlan)
+                checkForActiveCall();
+            @endif
         });
 
         function setCurrentConversation(conversationId) {
             currentConversationId = conversationId;
+        }
+
+        function checkForActiveCall() {
+            try {
+                const activeCall = localStorage.getItem('activeCall');
+                if (activeCall) {
+                    const callData = JSON.parse(activeCall);
+                    const now = Date.now();
+                    
+                    // 5 dakikadan eski aramalar geçersiz
+                    if (now - callData.timestamp > 5 * 60 * 1000) {
+                        localStorage.removeItem('activeCall');
+                        return;
+                    }
+                    
+                    // Eğer aynı conversation'daysa ve aktif arama varsa tekrar bağlan
+                    if (callData.conversationId == currentConversationId && callData.room) {
+                        console.log('Rejoining active call:', callData.room);
+                        lkRoomName = callData.room;
+                        lkToken = callData.token;
+                        lkWsUrl = callData.wsUrl;
+                        
+                        if (callData.status === 'connected') {
+                            joinLiveKitRoom().then(() => {
+                                renderCallCard('connected');
+                                if (callActionIcon) callActionIcon.setAttribute('icon', 'solar:phone-end-linear');
+                            }).catch(e => {
+                                console.error('Failed to rejoin call:', e);
+                                localStorage.removeItem('activeCall');
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Error checking active call:', e);
+                localStorage.removeItem('activeCall');
+            }
+        }
+
+        function saveActiveCall(status) {
+            try {
+                if (lkRoomName && currentConversationId) {
+                    const callData = {
+                        conversationId: currentConversationId,
+                        room: lkRoomName,
+                        token: lkToken,
+                        wsUrl: lkWsUrl,
+                        status: status,
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('activeCall', JSON.stringify(callData));
+                }
+            } catch (e) {
+                console.error('Error saving active call:', e);
+            }
+        }
+
+        function clearActiveCall() {
+            try {
+                localStorage.removeItem('activeCall');
+            } catch (e) {
+                console.error('Error clearing active call:', e);
+            }
+        }
+
+        function checkForIncomingCall() {
+            try {
+                const incomingCall = localStorage.getItem('incomingCall');
+                console.log('🔍 checkForIncomingCall - localStorage incomingCall:', incomingCall);
+                if (incomingCall) {
+                    const callData = JSON.parse(incomingCall);
+                    const now = Date.now();
+                    
+                    // 30 saniyeden eski aramalar geçersiz
+                    if (now - callData.timestamp > 30 * 1000) {
+                        localStorage.removeItem('incomingCall');
+                        return;
+                    }
+                    
+                    // Eğer aynı conversation için active call varsa incoming call gösterme
+                    const activeCall = localStorage.getItem('activeCall');
+                    if (activeCall) {
+                        const activeCallData = JSON.parse(activeCall);
+                        if (activeCallData.conversationId == callData.conversationId) {
+                            console.log('Active call exists for this conversation, removing incoming call');
+                            localStorage.removeItem('incomingCall');
+                            return;
+                        }
+                    }
+                    
+                    // URL'den conversation ID'yi al
+                    const urlPath = window.location.pathname;
+                    const urlConversationId = urlPath.match(/\/avukat\/mesajlar\/(\d+)/)?.[1];
+                    
+                    // Eğer doğru conversation'daysa veya currentConversationId varsa gelen aramayı göster
+                    if (callData.conversationId == urlConversationId || callData.conversationId == currentConversationId) {
+                        // Eğer modal zaten açıksa tekrar açma
+                        const existingModal = bootstrap.Modal.getInstance(document.getElementById('incomingCallModal'));
+                        if (existingModal && existingModal._isShown) {
+                            console.log('Modal already open, skipping...');
+                            return;
+                        }
+                        
+                        console.log('Showing incoming call after redirect:', callData.room);
+                        lkRoomName = callData.room;
+                        window.__incomingConversationId = callData.conversationId;
+                        
+                        // currentConversationId'yi güncelle
+                        if (!currentConversationId) {
+                            setCurrentConversation(callData.conversationId);
+                        }
+                        
+                        startRingtone();
+                        renderCallCard('incoming');
+                        
+                        // Show incoming call modal
+                        try {
+                            const modal = new bootstrap.Modal(document.getElementById('incomingCallModal'));
+                            modal.show();
+                            
+                            // Setup accept button
+                            const acceptBtn = document.getElementById('acceptCallBtn');
+                            if (acceptBtn) {
+                                acceptBtn.onclick = async () => {
+                                    modal.hide();
+                                    await acceptIncomingCall();
+                                };
+                            }
+                        } catch (e) {
+                            console.error('Modal show failed:', e);
+                        }
+                        
+                        // Setup timeout
+                        window.__incomingTimeout = setTimeout(() => {
+                            try { stopRingtone(); } catch {}
+                            try { 
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('incomingCallModal'));
+                                if (modal) modal.hide();
+                            } catch {}
+                            localStorage.removeItem('incomingCall');
+                            showNotification('Çağrı cevaplanmadı', 'danger');
+                        }, 30000);
+                        
+                        // localStorage'ı hemen temizleme - sadece kabul/reddet edildiğinde temizle
+                    }
+                }
+            } catch (e) {
+                console.error('Error checking incoming call:', e);
+                localStorage.removeItem('incomingCall');
+            }
         }
 
         function filterChats(query) {
@@ -397,175 +721,7 @@
             }, 3000);
         }
 
-        function loadConversation(id, url, clickedEl) {
-            setCurrentConversation(id);
 
-            document.querySelectorAll('.chat-sidebar-single').forEach(el => el.classList.remove('active'));
-            clickedEl.classList.add('active');
-
-            fetch(url, {
-                method: 'GET',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Accept': 'application/json'
-                }
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Sohbet yüklenemedi: ' + response.statusText);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    const chatArea = document.getElementById('chat-area-content');
-                    chatArea.innerHTML = `
-            <div class="chat-sidebar-single-ust p-1">
-                <div class="d-flex justify-content-between align-items-center w-100">
-                    <button type="button" class="btn btn-link text-muted d-md-none me-2 p-0" data-bs-toggle="modal" data-bs-target="#chatModal">
-                        <iconify-icon icon="ph:arrow-left" class="fs-5"></iconify-icon>
-                    </button>
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="flex-shrink-0 img">
-                            <img src="${data.katip_avatar || '{{ asset('upload/no_image.jpg') }}'}" alt="Avatar" style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%;">
-                        </div>
-                        <div class="info">
-                            <h6 class="text-md mb-0">${data.katip_name || 'Bilinmeyen Kullanıcı'}</h6>
-                            <p class="mb-0 small ${data.katip_is_active ? 'text-success' : 'text-muted'}">
-                                ${data.katip_is_active ? 'Online' : `Son Görülme: ${data.katip_last_active_at ? relativeTime(data.katip_last_active_at) : 'Bilinmiyor'}`}
-                            </p>
-                        </div>
-                    </div>
-                    <div class="action d-inline-flex align-items-center gap-3">
-                        <button id="callActionBtn" type="button" class="text-xl text-primary-light" title="Ara">
-                            <iconify-icon id="callActionIcon" icon="mi:call"></iconify-icon>
-                        </button>
-                        <div class="btn-group">
-                            <button type="button" class="text-primary-light text-xl" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
-                                <iconify-icon icon="tabler:dots-vertical"></iconify-icon>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-lg-end border">
-                                <li>
-                                    <button class="dropdown-item rounded text-secondary-light bg-hover-neutral-200 text-hover-neutral-900 d-flex align-items-center gap-2" type="button">
-                                        <iconify-icon icon="mdi:clear-circle-outline"></iconify-icon> Tümünü Temizle
-                                    </button>
-                                </li>
-                                <li>
-                                    <button class="dropdown-item rounded text-secondary-light bg-hover-neutral-200 text-hover-neutral-900 d-flex align-items-center gap-2" type="button">
-                                        <iconify-icon icon="ic:baseline-block"></iconify-icon> Engelle
-                                    </button>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="chat-message-list p-3 flex-grow-1" style="overflow-y: auto; height: calc(100vh - 180px);">
-                ${data.messages.map(msg => {
-                        // Handle call messages differently
-                        if (msg.type && msg.type.startsWith('call_')) {
-                            const metadata = msg.call_metadata || {};
-                            const status = metadata.status || 'initiated';
-                            const duration = metadata.duration || 0;
-                            
-                            const callIcon = status === 'answered' ? '📞' : 
-                                           status === 'ended' ? '📞' : 
-                                           status === 'missed' ? '📞❌' : '📞';
-                            const callText = status === 'answered' ? 'Görüşme tamamlandı' :
-                                           status === 'ended' ? 'Görüşme sonlandırıldı' :
-                                           status === 'missed' ? 'Cevapsız arama' :
-                                           'Arama başlatıldı';
-                            
-                            const durationText = duration > 0 ? ` · ${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, '0')}` : '';
-                            
-                            return `
-                            <div class="chat-single-message mb-3" data-message-id="${msg.id}" style="justify-content: center;">
-                                <div class="chat-message-content" style="max-width: 300px; text-align: center;">
-                                    <div class="mb-0 system-notification">
-                                        ${callIcon} ${callText}${durationText}
-                                    </div>
-                                    <p class="chat-time mb-0">
-                                        <span>${msg.created_at || 'Bilinmeyen zaman'}</span>
-                                    </p>
-                                </div>
-                            </div>`;
-                        }
-                        
-                        // Regular messages
-                        const cls = msg.sender_type === 'Avukat' ? 'right' : 'left';
-                        const avatar = msg.sender_type === 'Avukat' ? (data.avukat_avatar || '{{ asset('upload/no_image.jpg') }}') : (data.katip_avatar || '{{ asset('upload/no_image.jpg') }}');
-                        const isHTMLMessage = msg.message && /<[a-z][\s\S]*>/i.test(msg.message);
-                        const messageContent = isHTMLMessage ? sanitizeHTML(msg.message) : (msg.message ? msg.message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : '');
-
-                        return `
-                        <div class="chat-single-message ${cls} mb-3" data-message-id="${msg.id}">
-                            ${cls === 'left' ? `<img src="${avatar}" alt="Avatar" class="avatar-lg object-fit-cover rounded-circle">` : ''}
-                            <div class="chat-message-content">
-                                ${messageContent ? `<div class="mb-0 ${isHTMLMessage ? 'system-notification' : 'emoji'}">${messageContent}</div>` : ''}
-                                ${msg.attachments && msg.attachments.length > 0 ? `
-                                    <div class="attachment-list mt-2">
-                                        ${msg.attachments.map(att => `
-                                            <a href="${att.url}" target="_blank" style="color: ${cls === 'right' ? '#bfdbfe' : '#667eea'}; text-decoration: none;">
-                                                <iconify-icon icon="ph:file"></iconify-icon>
-                                                ${att.file_name} (${att.file_size} KB)
-                                            </a>
-                                        `).join('')}
-                                    </div>
-                                ` : ''}
-                                <p class="chat-time mb-0">
-                                    <span>${msg.created_at || 'Bilinmeyen zaman'}</span>
-                                </p>
-                            </div>
-                            ${cls === 'right' ? `<img src="${avatar}" alt="Avatar" class="avatar-lg object-fit-cover rounded-circle">` : ''}
-                        </div>`;
-                    }).join('')}
-            </div>
-            <form class="chat-message-box p-3 border-top" id="chat-form" enctype="multipart/form-data">
-                <div class="d-flex align-items-center w-100">
-                    <input type="text" name="content" id="messageInput" class="form-control rounded-3 me-2" placeholder="Mesaj yaz..." style="flex: 1;">
-                    <div class="chat-message-box-action d-flex align-items-center gap-2">
-                        <input type="file" name="file" id="fileInput" style="display: none;" accept="image/*">
-                        <button type="button" class="text-xl" id="fileUploadBtn" onclick="document.getElementById('fileInput').click();">
-                            <iconify-icon icon="solar:gallery-linear"></iconify-icon>
-                        </button>
-                        <button type="button" class="text-xl emoji-btn" id="emojiBtn">
-                            <iconify-icon icon="ph:smiley"></iconify-icon>
-                        </button>
-                        <button type="submit" class="btn btn-sm btn-primary-600 radius-8 d-inline-flex align-items-center justify-content-center" id="sendButton">
-                            <iconify-icon icon="f7:paperplane" style="font-size: 18px;"></iconify-icon>
-                        </button>
-                    </div>
-                </div>
-                <input type="hidden" name="conversation_id" value="${data.conversation_id}">
-                <div id="emojiPanel" class="emoji-panel">
-                    <span class="emoji" data-emoji="😊">😊</span>
-                    <span class="emoji" data-emoji="👍">👍</span>
-                    <span class="emoji" data-emoji="😂">😂</span>
-                    <span class="emoji" data-emoji="😍">😍</span>
-                    <span class="emoji" data-emoji="😢">😢</span>
-                    <span class="emoji" data-emoji="😎">😎</span>
-                    <span class="emoji" data-emoji="😜">😜</span>
-                    <span class="emoji" data-emoji="😘">😘</span>
-                    <span class="emoji" data-emoji="😡">😡</span>
-                    <span class="emoji" data-emoji="😴">😴</span>
-                </div>
-            </form>
-        `;
-
-                    const msgList = document.querySelector('.chat-message-list');
-                    if (msgList) msgList.scrollTop = msgList.scrollHeight;
-
-                    // Setup fonksiyonları
-                    setupEmojiPanel();
-                    setupPusherForConversation(data.conversation_id);
-                    setupFileUpload();
-                    setupMessageForm();
-                    setupCallHeaderControls();
-                })
-                .catch(error => {
-                    console.error('Sohbet yüklenemedi:', error);
-                    showNotification('Sohbet yüklenemedi', 'danger');
-                });
-        }
 
         function setupCallHeaderControls() {
             const headerCallBtn = document.getElementById('callActionBtn');
@@ -714,33 +870,7 @@
             }
         }
 
-        function startNewConversation(katipId) {
-            fetch('/avukat/mesajlar/yeni-sohbet', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ katip_id: katipId })
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Yeni sohbet başlatılamadı: ' + response.statusText);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        loadConversation(data.conversation_id, '{{ route('avukat.chat.show', ':id') }}'.replace(':id', data.conversation_id), document.querySelector(`.chat-sidebar-single[data-user-id="${katipId}"]`));
-                    } else {
-                        showNotification('Yeni sohbet başlatılamadı', 'danger');
-                    }
-                })
-                .catch(error => {
-                    console.error('Hata:', error);
-                    showNotification('Yeni sohbet başlatılamadı', 'danger');
-                });
-        }
+
 
         // appendMessage fonksiyonu - Sadeleştirilmiş
         function appendMessage(msg) {
@@ -1067,6 +1197,22 @@
             return data;
         }
 
+        async function fetchTokenForConversation(room, conversationId) {
+            const res = await fetch(`/avukat/mesajlar/${conversationId}/call/token`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Content-Type': 'application/json',
+                    'X-Socket-Id': pusherSocketId || ''
+                },
+                body: JSON.stringify({ room })
+            });
+            if (!res.ok) throw new Error('Token alınamadı');
+            const data = await res.json();
+            try { window.__lastIceServers = data.iceServers || []; } catch {}
+            return data;
+        }
+
         async function startCall() {
             try {
                 if (!currentConversationId) return;
@@ -1097,11 +1243,37 @@
 
         async function acceptIncomingCall() {
             try {
-                if (!lkRoomName) return;
-                if (!currentConversationId && window.__incomingConversationId) {
-                    currentConversationId = window.__incomingConversationId;
+                console.log('🔵 acceptIncomingCall started');
+                
+                // localStorage'dan incoming call verisini al
+                const storedCall = localStorage.getItem('incomingCall');
+                console.log('📦 storedCall:', storedCall);
+                if (!storedCall) {
+                    console.log('❌ No stored call found');
+                    return;
                 }
-                if (!currentConversationId) return;
+                
+                let callData;
+                try {
+                    callData = JSON.parse(storedCall);
+                    console.log('📋 callData:', callData);
+                } catch (e) {
+                    console.error('Invalid incoming call data:', e);
+                    localStorage.removeItem('incomingCall');
+                    return;
+                }
+                
+                if (!callData.room || !callData.conversationId) {
+                    console.log('❌ Missing room or conversationId:', callData);
+                    return;
+                }
+                
+                // Değişkenleri localStorage'dan al
+                lkRoomName = callData.room;
+                const incomingConversationId = callData.conversationId;
+                console.log('🎯 Using room:', lkRoomName, 'conversation:', incomingConversationId);
+                
+                console.log('Accepting call for conversation:', incomingConversationId);
                 
                 // Clear the timeout to prevent "call not answered" message
                 try { 
@@ -1131,7 +1303,9 @@
                 }
                 
                 stopRingtone();
-                await fetch(`/avukat/mesajlar/${currentConversationId}/call/accept`, {
+                
+                console.log('📞 Calling accept API...');
+                const acceptResponse = await fetch(`/avukat/mesajlar/${incomingConversationId}/call/accept`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -1140,14 +1314,32 @@
                     },
                     body: JSON.stringify({ room: lkRoomName })
                 });
-                const tokenData = await fetchToken(lkRoomName);
+                console.log('📞 Accept API response:', acceptResponse.status, acceptResponse.statusText);
+                
+                console.log('🎫 Fetching token...');
+                const tokenData = await fetchTokenForConversation(lkRoomName, incomingConversationId);
+                console.log('🎫 Token data:', tokenData);
+                
                 lkToken = tokenData.token;
                 lkWsUrl = tokenData.ws_url;
+                
+                console.log('🚀 Joining LiveKit room...');
                 await joinLiveKitRoom();
+                console.log('✅ Joined LiveKit room successfully');
+                
                 if (callActionIcon) callActionIcon.setAttribute('icon', 'solar:phone-end-linear');
                 renderCallCard('connected');
+                
+                // Gelen aramanın conversation ID'sini kaydet
+                setCurrentConversation(incomingConversationId);
+                saveActiveCall('connected');
+                
+                // Clear incoming call from localStorage after successful accept
+                localStorage.removeItem('incomingCall');
             } catch (e) {
                 console.error(e);
+                // Clear localStorage on error too
+                localStorage.removeItem('incomingCall');
             }
         }
 
@@ -1166,6 +1358,9 @@
                 lkRoomName = null;
                 lkToken = null;
                 lkWsUrl = null;
+                
+                // Clear incoming call from localStorage
+                localStorage.removeItem('incomingCall');
                 
                 // Remove backdrop manually
                 const backdrop = document.querySelector('.modal-backdrop');
@@ -1249,6 +1444,7 @@
             if (callActionIcon) callActionIcon.setAttribute('icon', 'mi:call');
             
             renderCallCard('ended');
+            clearActiveCall();
             
             console.log('Call ended successfully');
             
@@ -1391,7 +1587,27 @@
         function bindCallEvents(channel) {
             channel.bind('call-invited', function (data) {
                 console.log('Call invited event received:', data);
+                
+                // Aynı room için zaten işlem yapılmışsa skip et
+                const existingCall = localStorage.getItem('incomingCall');
+                if (existingCall) {
+                    const existingData = JSON.parse(existingCall);
+                    if (existingData.room === data.room) {
+                        console.log('🔄 Same room call already processed, skipping:', data.room);
+                        return;
+                    }
+                }
+                
                 lkRoomName = data.room;
+                
+                // localStorage'a gelen arama bilgisini kaydet
+                localStorage.setItem('incomingCall', JSON.stringify({
+                    room: data.room,
+                    conversationId: data.conversation_id,
+                    timestamp: Date.now()
+                }));
+                console.log('📦 Incoming call saved to localStorage:', data.room, data.conversation_id);
+                
                 startRingtone();
                 renderCallCard('incoming');
                 
@@ -1464,6 +1680,7 @@
                 lkToken = null;
                 if (callActionIcon) callActionIcon.setAttribute('icon', 'mi:call');
                 renderCallCard('ended');
+                clearActiveCall(); // Diğer taraf sonlandırdığında localStorage'ı temizle
             });
         }
 
