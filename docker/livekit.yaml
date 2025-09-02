@@ -19,5 +19,5 @@ keys:
 development: false
 log_level: info
 tls:
-  cert: /etc/letsencrypt/live/katibim.xyz/fullchain.pem
-  key: /etc/letsencrypt/live/katibim.xyz/privkey.pem
+  cert: /etc/letsencrypt/live/call.katibim.xyz/fullchain.pem
+  key: /etc/letsencrypt/live/call.katibim.xyz/privkey.pem

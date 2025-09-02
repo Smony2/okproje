@@ -117,8 +117,8 @@ services:
       --relay-ip=0.0.0.0
       --no-multicast-peers
       --no-cli
-      --cert=/etc/letsencrypt/live/katibim.xyz/fullchain.pem
-      --pkey=/etc/letsencrypt/live/katibim.xyz/privkey.pem
+      --cert=/etc/letsencrypt/live/call.katibim.xyz/fullchain.pem
+      --pkey=/etc/letsencrypt/live/call.katibim.xyz/privkey.pem
       --verbose
     volumes:
       - certbot_certs:/etc/letsencrypt:ro
@@ -139,7 +139,7 @@ services:
     volumes:
       - certbot_certs:/etc/letsencrypt
       - certbot_www:/var/www/certbot
-    command: certonly --webroot --webroot-path=/var/www/certbot --email admin@katibim.xyz --agree-tos --no-eff-email -d katibim.xyz -d *.katibim.xyz
+    command: certonly --webroot --webroot-path=/var/www/certbot --email admin@katibim.xyz --agree-tos --no-eff-email -d call.katibim.xyz
     networks:
       - okproje_network
 
