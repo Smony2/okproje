@@ -20,6 +20,7 @@ RUN apk add --no-cache \
         g++ \
         make \
         linux-headers \
+        supervisor \
     && docker-php-ext-configure gd --with-jpeg --with-webp --with-freetype \
     && docker-php-ext-install \
         pdo \
@@ -48,26 +49,30 @@ WORKDIR /var/www/html
 RUN addgroup -g 1000 www && \
     adduser -u 1000 -G www -s /bin/sh -D www
 
-# Copy existing application directory contents
+# Copy composer files first for better caching
+COPY composer.json composer.lock* ./
+
+# Install PHP dependencies (production optimized)
+RUN composer install --no-dev --no-scripts --no-progress --prefer-dist --optimize-autoloader --no-interaction
+
+# Copy application code
 COPY . /var/www/html
 
-# Copy existing application directory permissions
-COPY --chown=www:www . /var/www/html
+# Set proper ownership
+RUN chown -R www:www /var/www/html
 
 # Change current user to www
 USER www
 
-# Optimize composer for dev containers
-ENV COMPOSER_ALLOW_SUPERUSER=1 \
-    COMPOSER_VENDOR_DIR=/var/www/html/vendor \
-    COMPOSER_CACHE_DIR=/var/www/html/.composer/cache
-
-# Install PHP dependencies
-RUN composer install --no-scripts --no-progress --prefer-dist --optimize-autoloader
-
 # Generate application key if .env doesn't exist
 RUN php -r "file_exists('.env') || copy('.env.example', '.env');" \
-    && php artisan key:generate --ansi || true
+    && php artisan key:generate --ansi --force || true
+
+# Optimize Laravel for production
+RUN php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache \
+    && php artisan event:cache
 
 # Switch back to root for final setup
 USER root
@@ -83,11 +88,16 @@ RUN mkdir -p /var/www/html/storage/logs \
     && chmod -R 775 /var/www/html/storage \
     && chmod -R 775 /var/www/html/bootstrap/cache
 
+# Copy supervisor configuration
+COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 # Switch back to www user
 USER www
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD php artisan tinker --execute="echo 'OK';" || exit 1
 
 # Expose port 9000 and start php-fpm server
 EXPOSE 9000
 CMD ["php-fpm"]
-
-
