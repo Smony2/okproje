@@ -137,12 +137,24 @@ class CallController extends Controller
         if ($stun) {
             $iceServers[] = ['urls' => [$stun]];
         }
+        
+        // Add TURN servers (UDP and TLS)
         $turnUrl = Config::get('services.livekit.turn_url');
+        $turnTlsUrl = Config::get('services.livekit.turn_tls_url');
         $turnUser = Config::get('services.livekit.turn_username');
         $turnPass = Config::get('services.livekit.turn_password');
+        
         if ($turnUrl && $turnUser && $turnPass) {
             $iceServers[] = [
                 'urls' => [$turnUrl],
+                'username' => $turnUser,
+                'credential' => $turnPass,
+            ];
+        }
+        
+        if ($turnTlsUrl && $turnUser && $turnPass) {
+            $iceServers[] = [
+                'urls' => [$turnTlsUrl],
                 'username' => $turnUser,
                 'credential' => $turnPass,
             ];

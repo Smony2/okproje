@@ -37,6 +37,7 @@ return [
         'api_secret' => env('LIVEKIT_API_SECRET', 'devsecret'),
         'stun_url' => env('STUN_URL', 'stun:stun.l.google.com:19302'),
         'turn_url' => env('TURN_URL'),
+        'turn_tls_url' => env('TURN_TLS_URL'),
         'turn_username' => env('TURN_USERNAME'),
         'turn_password' => env('TURN_PASSWORD'),
         'token_ttl_minutes' => env('LIVEKIT_TOKEN_TTL', 60),
