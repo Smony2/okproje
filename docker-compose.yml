@@ -43,7 +43,7 @@ services:
       MYSQL_USER: ${DB_USERNAME:-okproje}
       MYSQL_PASSWORD: ${DB_PASSWORD:-password}
     volumes:
-      - db_data:/var/lib/mysql
+      - ../mysql_data:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
     ports:
       - "3306:3306"
@@ -58,7 +58,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - ../redis_data:/data
     networks:
       - okproje_network
 
@@ -110,8 +110,8 @@ services:
 
 
 volumes:
-  db_data:
-  redis_data:
+  # Artık host dizinlerini kullandığımız için named volume'lara ihtiyaç yok
+  # Tüm veriler ../ dizininde saklanacak
 
 networks:
   okproje_network:
