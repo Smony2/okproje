@@ -107,16 +107,7 @@ services:
     networks:
       - okproje_network
 
-  # Mailhog for Email Testing
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: okproje_mailhog
-    ports:
-      - "1025:1025"
-      - "8025:8025"
-    restart: unless-stopped
-    networks:
-      - okproje_network
+
 
 volumes:
   db_data:
@@ -125,5 +116,3 @@ volumes:
 networks:
   okproje_network:
     driver: bridge
-
-
