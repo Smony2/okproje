@@ -48,11 +48,8 @@ WORKDIR /var/www/html
 RUN addgroup -g 1000 www && \
     adduser -u 1000 -G www -s /bin/sh -D www
 
-# Copy existing application directory contents
-COPY . /var/www/html
-
-# Copy existing application directory permissions
-COPY --chown=www:www . /var/www/html
+# Copy composer files first for better caching
+COPY composer.json composer.lock* ./
 
 # Change current user to www
 USER www
@@ -64,6 +61,18 @@ ENV COMPOSER_ALLOW_SUPERUSER=1 \
 
 # Install PHP dependencies
 RUN composer install --no-scripts --no-progress --prefer-dist --optimize-autoloader
+
+# Switch back to root to copy remaining files
+USER root
+
+# Copy remaining application files
+COPY . /var/www/html
+
+# Set proper ownership
+RUN chown -R www:www /var/www/html
+
+# Switch back to www user
+USER www
 
 # Generate application key if .env doesn't exist
 RUN php -r "file_exists('.env') || copy('.env.example', '.env');" \
