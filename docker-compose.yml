@@ -109,7 +109,7 @@ services:
 
 
 
-volumes:
+# volumes:
   # Artık host dizinlerini kullandığımız için named volume'lara ihtiyaç yok
   # Tüm veriler ../ dizininde saklanacak
 
