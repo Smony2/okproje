@@ -96,8 +96,8 @@ sudo apt install git -y
 git clone <your-repository-url>
 cd okproje
 
-# Production environment dosyasını oluştur
-cp .env.production.example .env
+# Environment dosyasını kontrol et
+# .env dosyası zaten mevcut, gerekirse düzenleyin
 
 # Veri dizinlerini oluştur (bir üst dizinde)
 mkdir -p ../mysql_data
