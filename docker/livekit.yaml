@@ -18,6 +18,3 @@ keys:
   ${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
 development: false
 log_level: info
-tls:
-  cert: /etc/letsencrypt/live/call.katibim.xyz/fullchain.pem
-  key: /etc/letsencrypt/live/call.katibim.xyz/privkey.pem
