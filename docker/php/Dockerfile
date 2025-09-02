@@ -51,33 +51,14 @@ RUN addgroup -g 1000 www && \
 # Copy composer files first for better caching
 COPY composer.json composer.lock* ./
 
-# Change current user to www
-USER www
-
-# Optimize composer for dev containers
-ENV COMPOSER_ALLOW_SUPERUSER=1 
-
 # Install PHP dependencies
 RUN composer install --no-scripts --no-progress --prefer-dist --optimize-autoloader
-
-# Switch back to root to copy remaining files
-USER root
 
 # Copy remaining application files
 COPY . /var/www/html
 
 # Set proper ownership
 RUN chown -R www:www /var/www/html
-
-# Switch back to www user
-USER www
-
-# Generate application key if .env doesn't exist
-RUN php -r "file_exists('.env') || copy('.env.example', '.env');" \
-    && php artisan key:generate --ansi || true
-
-# Switch back to root for final setup
-USER root
 
 # Create necessary directories and set permissions
 RUN mkdir -p /var/www/html/storage/logs \
@@ -90,11 +71,13 @@ RUN mkdir -p /var/www/html/storage/logs \
     && chmod -R 775 /var/www/html/storage \
     && chmod -R 775 /var/www/html/bootstrap/cache
 
-# Switch back to www user
+# Generate application key if .env doesn't exist
+RUN php -r "file_exists('.env') || copy('.env.example', '.env');" \
+    && php artisan key:generate --ansi || true
+
+# Change current user to www
 USER www
 
 # Expose port 9000 and start php-fpm server
 EXPOSE 9000
 CMD ["php-fpm"]
-
-
