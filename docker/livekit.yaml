@@ -2,7 +2,7 @@ port: 7880
 rtc:
   use_external_ip: true
   stun_servers:
-    - stun:stun.l.google.com:19302
+    - stun.l.google.com:19302
   turn_servers:
     - host: turn
       port: 3478
