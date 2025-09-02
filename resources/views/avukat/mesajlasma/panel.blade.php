@@ -2073,12 +2073,29 @@
                 if (!RoomCtor || !RoomEvent) throw new Error('LiveKit Room not available');
 
                 console.log('Creating LiveKit room...');
-                lkRoom = new RoomCtor({ adaptiveStream: true, dynacast: true });
-                // fetch ICE from backend token endpoint already returned iceServers
-                let connectOpts = {};
+                lkRoom = new RoomCtor({ 
+                    adaptiveStream: true, 
+                    dynacast: true,
+                    publishDefaults: {
+                        audioPreset: {
+                            maxBitrate: 64000,
+                            priority: 'high'
+                        }
+                    }
+                });
+                
+                let connectOpts = {
+                    timeout: 30000, // 30 second timeout
+                    reconnectPolicy: {
+                        nextRetryDelayInMs: (context) => {
+                            return Math.min(context.retryCount * 1000, 5000);
+                        }
+                    }
+                };
+                
                 try {
                     if (typeof window.__lastIceServers === 'object') {
-                        connectOpts = { rtcConfig: { iceServers: window.__lastIceServers } };
+                        connectOpts.rtcConfig = { iceServers: window.__lastIceServers };
                         console.log('Using ICE servers:', window.__lastIceServers);
                     }
                 } catch {}
@@ -2086,7 +2103,13 @@
                 // Ensure microphone permissions before connecting
                 console.log('Requesting microphone permissions...');
                 try {
-                    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    localStream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        } 
+                    });
                     console.log('Microphone permission granted');
                 } catch (e) {
                     console.warn('Microphone permission denied:', e);
@@ -2095,7 +2118,14 @@
                 }
                 
                 console.log('Connecting to LiveKit room:', lkWsUrl);
-                await lkRoom.connect(lkWsUrl, lkToken, connectOpts);
+                
+                // Add connection timeout handling
+                const connectPromise = lkRoom.connect(lkWsUrl, lkToken, connectOpts);
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Connection timeout')), 30000)
+                );
+                
+                await Promise.race([connectPromise, timeoutPromise]);
                 console.log('Successfully connected to LiveKit room');
                 
                 // Enable microphone with retry
@@ -2170,6 +2200,35 @@
                 console.log('LiveKit room setup completed successfully');
             } catch (e) {
                 console.error('Failed to join LiveKit room:', e);
+                
+                // Enhanced error handling
+                let errorMessage = 'Bağlantı kurulamadı';
+                if (e.message.includes('timeout')) {
+                    errorMessage = 'Bağlantı zaman aşımına uğradı. Lütfen tekrar deneyin.';
+                } else if (e.message.includes('WebSocket')) {
+                    errorMessage = 'WebSocket bağlantısı kurulamadı. Ağ bağlantınızı kontrol edin.';
+                } else if (e.message.includes('signal')) {
+                    errorMessage = 'Sinyal sunucusuna bağlanılamadı. Lütfen tekrar deneyin.';
+                } else if (e.message.includes('permission')) {
+                    errorMessage = 'Mikrofon izni gerekli. Lütfen tarayıcı ayarlarını kontrol edin.';
+                }
+                
+                showNotification(errorMessage, 'danger');
+                
+                // Clean up on error
+                try {
+                    if (lkRoom) {
+                        await lkRoom.disconnect();
+                        lkRoom = null;
+                    }
+                    if (localStream) {
+                        localStream.getTracks().forEach(track => track.stop());
+                        localStream = null;
+                    }
+                } catch (cleanupError) {
+                    console.warn('Cleanup error:', cleanupError);
+                }
+                
                 throw e;
             }
         }
