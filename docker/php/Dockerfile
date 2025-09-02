@@ -55,9 +55,7 @@ COPY composer.json composer.lock* ./
 USER www
 
 # Optimize composer for dev containers
-ENV COMPOSER_ALLOW_SUPERUSER=1 \
-    COMPOSER_VENDOR_DIR=/var/www/html/vendor \
-    COMPOSER_CACHE_DIR=/var/www/html/.composer/cache
+ENV COMPOSER_ALLOW_SUPERUSER=1 
 
 # Install PHP dependencies
 RUN composer install --no-scripts --no-progress --prefer-dist --optimize-autoloader
