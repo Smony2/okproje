@@ -302,6 +302,70 @@
                 margin-bottom: 12px;
             }
         }
+        
+        /* Simple Call Modal Styles */
+        .simple-call-modal {
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+            max-width: 380px;
+            margin: 0 auto;
+        }
+        
+        .simple-call-modal .modal-body {
+            padding: 2rem !important;
+        }
+        
+        .caller-avatar {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #f8f9fa;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .caller-name {
+            font-weight: 600;
+            color: #212529;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .caller-status {
+            font-size: 1rem;
+            color: #6c757d;
+            margin-bottom: 0.75rem;
+        }
+        
+        .caller-type-badge {
+            margin-bottom: 2rem;
+        }
+        
+        .caller-type-badge .badge {
+            font-size: 0.875rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+        }
+        
+        .call-action-btn {
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .call-action-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .call-actions {
+            gap: 3rem !important;
+        }
     </style>
 @endsection
 
@@ -536,19 +600,32 @@
             </div>
             <audio id="remoteAudio" autoplay playsinline></audio>
             <audio id="ringtoneAudio" src="/assets/sounds/ringtone.mp3" preload="auto" loop></audio>
+                        <!-- Simple Call Modal -->
             <div class="modal fade" id="incomingCallModal" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Gelen Çağrı</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                    <div class="modal-content simple-call-modal">
+                        <div class="modal-body text-center">
+                            <!-- Caller Avatar -->
+                            <div class="mb-4">
+                                <img id="callerAvatar" src="{{ asset('upload/no_image.jpg') }}" alt="Arayan Kişi" class="caller-avatar">
                         </div>
-                        <div class="modal-body">
-                            <p>Bir çağrınız var. Kabul etmek ister misiniz?</p>
+                            
+                            <!-- Caller Info -->
+                            <h4 class="caller-name" id="callerName">Arayan Kişi</h4>
+                            <p class="caller-status" id="callerStatus">Gelen çağrı...</p>
+                            <div class="caller-type-badge">
+                                <span class="badge bg-primary" id="callerType">Avukat</span>
                         </div>
-                        <div class="modal-footer">
-                            <button type="button" id="declineCallBtn" class="btn btn-outline-danger" data-bs-dismiss="modal" onclick="declineIncomingCall()">Reddet</button>
-                            <button type="button" id="acceptCallBtn" class="btn btn-success">Kabul Et</button>
+                            
+                            <!-- Call Actions -->
+                            <div class="d-flex justify-content-center call-actions">
+                                <button type="button" class="btn btn-danger btn-lg rounded-circle call-action-btn" id="declineCallBtn" onclick="declineIncomingCall()">
+                                    <iconify-icon icon="solar:phone-down-linear" style="font-size: 26px;"></iconify-icon>
+                                </button>
+                                <button type="button" class="btn btn-success btn-lg rounded-circle call-action-btn" id="acceptCallBtn">
+                                    <iconify-icon icon="solar:phone-linear" style="font-size: 26px;"></iconify-icon>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -668,12 +745,16 @@
                 // Eğer farklı bir conversation'dan arama geliyorsa, o conversation'a git
                 if (data.conversation_id && currentConversationId !== data.conversation_id) {
                     console.log('Redirecting to conversation:', data.conversation_id);
-                    // localStorage'a gelen arama bilgisini kaydet
-                    localStorage.setItem('incomingCall', JSON.stringify({
-                        room: data.room,
-                        conversationId: data.conversation_id,
-                        timestamp: Date.now()
-                    }));
+                                    // localStorage'a gelen arama bilgisini kaydet
+                localStorage.setItem('incomingCall', JSON.stringify({
+                    room: data.room,
+                    conversationId: data.conversation_id,
+                    timestamp: Date.now(),
+                    from_name: data.from_name || 'Bilinmeyen Kullanıcı',
+                    from_avatar: data.from_avatar || null,
+                    from_type: data.from_type || 'Kullanıcı',
+                    from_id: data.from_id || null
+                }));
                     window.location.href = '{{ route('katip.chat.show', ':id') }}'.replace(':id', data.conversation_id);
                     return;
                 }
@@ -791,6 +872,12 @@
                             joinLiveKitRoom().then(() => {
                                 renderCallCard('connected');
                                 if (callActionIcon) callActionIcon.setAttribute('icon', 'solar:phone-end-linear');
+                                
+                                // Arayan kişi bilgilerini modal'da göster
+                                if (callData.from_name || callData.from_type) {
+                                    console.log('🔄 Updating modal with active call data:', callData);
+                                    updateCallModalInfo(callData);
+                                }
                             }).catch(e => {
                                 console.error('Failed to rejoin call:', e);
                                 localStorage.removeItem('activeCall');
@@ -807,15 +894,35 @@
         function saveActiveCall(status) {
             try {
                 if (lkRoomName && currentConversationId) {
+                    // Önce incoming call bilgilerini al
+                    const incomingCall = localStorage.getItem('incomingCall');
+                    let callerInfo = {};
+                    
+                    if (incomingCall) {
+                        try {
+                            const incomingData = JSON.parse(incomingCall);
+                            callerInfo = {
+                                from_name: incomingData.from_name,
+                                from_avatar: incomingData.from_avatar,
+                                from_type: incomingData.from_type,
+                                from_id: incomingData.from_id
+                            };
+                        } catch (e) {
+                            console.error('Error parsing incoming call data:', e);
+                        }
+                    }
+                    
                     const callData = {
                         conversationId: currentConversationId,
                         room: lkRoomName,
                         token: lkToken,
                         wsUrl: lkWsUrl,
                         status: status,
-                        timestamp: Date.now()
+                        timestamp: Date.now(),
+                        ...callerInfo // Arayan kişi bilgilerini ekle
                     };
                     localStorage.setItem('activeCall', JSON.stringify(callData));
+                    console.log('✅ Active call saved with caller info:', callData);
                 }
             } catch (e) {
                 console.error('Error saving active call:', e);
@@ -1015,6 +1122,56 @@
             }
         }
 
+        // Update call modal with caller information
+        function updateCallModalInfo(callData) {
+            try {
+                console.log('🔄 Updating modal with call data:', callData);
+                
+                // Update caller avatar
+                const callerAvatar = document.getElementById('callerAvatar');
+                if (callerAvatar) {
+                    if (callData.from_avatar) {
+                        callerAvatar.src = callData.from_avatar;
+                    } else {
+                        callerAvatar.src = '{{ asset("upload/no_image.jpg") }}';
+                    }
+                }
+                
+                // Update caller name
+                const callerName = document.getElementById('callerName');
+                if (callerName) {
+                    callerName.textContent = callData.from_name || 'Bilinmeyen Kullanıcı';
+                }
+                
+                // Update caller status
+                const callerStatus = document.getElementById('callerStatus');
+                if (callerStatus) {
+                    callerStatus.textContent = 'Gelen çağrı...';
+                }
+                
+                // Update caller type
+                const callerType = document.getElementById('callerType');
+                if (callerType) {
+                    const type = callData.from_type || 'Kullanıcı';
+                    callerType.textContent = type;
+                    
+                    // Update badge color based on type
+                    callerType.className = 'badge';
+                    if (type === 'Katip') {
+                        callerType.classList.add('bg-success');
+                    } else if (type === 'Avukat') {
+                        callerType.classList.add('bg-primary');
+                    } else {
+                        callerType.classList.add('bg-secondary');
+                    }
+                }
+                
+                console.log('✅ Call modal info updated successfully');
+            } catch (e) {
+                console.error('❌ Error updating call modal info:', e);
+            }
+        }
+
         function checkForIncomingCall() {
             try {
                 const incomingCall = localStorage.getItem('incomingCall');
@@ -1065,8 +1222,11 @@
                         startRingtone();
                         renderCallCard('incoming');
                         
-                        // Show incoming call modal
+                        // Show incoming call modal with caller info
                         try {
+                            // Update modal with caller information
+                            updateCallModalInfo(callData);
+                            
                             const modal = new bootstrap.Modal(document.getElementById('incomingCallModal'));
                             modal.show();
                             
@@ -2146,7 +2306,11 @@
                 localStorage.setItem('incomingCall', JSON.stringify({
                     room: data.room,
                     conversationId: data.conversation_id,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    from_name: data.from_name || 'Bilinmeyen Kullanıcı',
+                    from_avatar: data.from_avatar || null,
+                    from_type: data.from_type || 'Kullanıcı',
+                    from_id: data.from_id || null
                 }));
                 console.log('📦 Incoming call saved to localStorage:', data.room, data.conversation_id);
                 
