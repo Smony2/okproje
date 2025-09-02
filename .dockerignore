@@ -12,6 +12,7 @@ docker-compose*
 README.md
 CHANGELOG.md
 LICENSE
+*.md
 
 # IDE
 .vscode
@@ -52,6 +53,8 @@ bootstrap/cache/*
 .phpunit.result.cache
 tests/Browser/screenshots
 tests/Browser/console
+coverage/
+.nyc_output
 
 # Build artifacts
 public/hot
@@ -64,10 +67,12 @@ public/mix-manifest.json
 *.temp
 *.log
 
-# Coverage reports
-coverage/
-.nyc_output
-
 # Backup files
 *.bak
 *.backup
+
+# Development tools
+.editorconfig
+.styleci.yml
+.php_cs.cache
+.php-cs-fixer.cache

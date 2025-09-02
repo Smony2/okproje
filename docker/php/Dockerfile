@@ -1,26 +1,49 @@
+# Multi-stage build for Laravel application
+# Stage 1: Composer dependencies
+FROM composer:2.6 AS composer
+
+WORKDIR /app
+
+# Copy composer files
+COPY composer.json composer.lock* ./
+
+# Install dependencies (no dev dependencies for production)
+RUN composer install \
+    --no-dev \
+    --no-scripts \
+    --no-interaction \
+    --no-progress \
+    --prefer-dist \
+    --optimize-autoloader \
+    --classmap-authoritative
+
+# Stage 2: Application image
 FROM php:8.3-fpm-alpine
 
 # Install system dependencies
 RUN apk add --no-cache \
-        git \
-        curl \
-        libpng libpng-dev \
-        libjpeg-turbo-dev \
-        libwebp-dev \
-        libzip-dev \
-        oniguruma-dev \
-        icu-dev \
-        bash \
-        shadow \
-        freetype-dev \
-        libxml2-dev \
-        sqlite-dev \
-        postgresql-dev \
-        autoconf \
-        g++ \
-        make \
-        linux-headers \
-    && docker-php-ext-configure gd --with-jpeg --with-webp --with-freetype \
+    git \
+    curl \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    libwebp-dev \
+    libzip-dev \
+    oniguruma-dev \
+    icu-dev \
+    freetype-dev \
+    libxml2-dev \
+    sqlite-dev \
+    postgresql-dev \
+    autoconf \
+    g++ \
+    make \
+    linux-headers \
+    shadow \
+    bash \
+    && docker-php-ext-configure gd \
+        --with-jpeg \
+        --with-webp \
+        --with-freetype \
     && docker-php-ext-install \
         pdo \
         pdo_mysql \
@@ -39,67 +62,53 @@ RUN apk add --no-cache \
     && rm -rf /var/cache/apk/*
 
 # Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
+COPY --from=composer:2.6 /usr/bin/composer /usr/local/bin/composer
+
+# Create system user
+RUN addgroup -g 1000 www && \
+    adduser -u 1000 -G www -s /bin/sh -D www
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Set user variables
-ARG uid=1000
-ARG user=www
+# Copy application files
+COPY --chown=www:www . /var/www/html
 
-# Create www-data user with proper permissions
-RUN addgroup -g 1000 www && \
-    adduser -u 1000 -G www -s /bin/sh -D www
+# Copy vendor from composer stage
+COPY --from=composer --chown=www:www /app/vendor /var/www/html/vendor
 
-# Add user to additional groups and create home directory
-RUN usermod -a -G www-data,root www
-RUN mkdir -p /home/$user/.composer && \
-    chown -R $user:$user /home/$user
-
-# Set proper permissions for web directory
-RUN chmod 755 /var/www/html
-
-# Copy composer files first for better caching
-COPY composer.json composer.lock* ./
-
-# Create vendor directory and set permissions
-RUN mkdir -p /var/www/html/vendor && \
-    chown -R $user:$user /var/www/html
-
-# Switch to www user for composer operations
-USER $user
-
-# Install PHP dependencies
-RUN composer install --no-scripts --no-progress --prefer-dist --optimize-autoloader
-
-# Switch back to root for file operations
-USER root
-
-# Copy remaining application files
-COPY . /var/www/html
-
-# Set proper ownership
-RUN chown -R $user:$user /var/www/html
-
-# Create necessary directories and set permissions
+# Create necessary directories
 RUN mkdir -p /var/www/html/storage/logs \
-    && mkdir -p /var/www/html/storage/framework/cache \
-    && mkdir -p /var/www/html/storage/framework/sessions \
-    && mkdir -p /var/www/html/storage/framework/views \
-    && mkdir -p /var/www/html/bootstrap/cache \
-    && chown -R $user:$user /var/www/html/storage \
-    && chown -R $user:$user /var/www/html/bootstrap/cache \
+    /var/www/html/storage/framework/cache \
+    /var/www/html/storage/framework/sessions \
+    /var/www/html/storage/framework/views \
+    /var/www/html/bootstrap/cache
+
+# Set proper permissions
+RUN chown -R www:www /var/www/html/storage \
+    /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage \
-    && chmod -R 775 /var/www/html/bootstrap/cache
+    /var/www/html/bootstrap/cache
 
-# Switch back to www user
-USER $user
-
-# Generate application key if .env doesn't exist
+# Generate application key if needed
 RUN php -r "file_exists('.env') || copy('.env.example', '.env');" \
-    && php artisan key:generate --ansi || true
+    && php artisan key:generate --ansi --force || true
 
-# Expose port 9000 and start php-fpm server
+# Optimize Laravel for production
+RUN php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache \
+    && php artisan event:cache || true
+
+# Switch to non-root user
+USER www
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD php artisan tinker --execute="echo 'OK';" || exit 1
+
+# Expose port
 EXPOSE 9000
+
+# Start PHP-FPM
 CMD ["php-fpm"]
