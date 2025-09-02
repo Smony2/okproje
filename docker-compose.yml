@@ -82,7 +82,11 @@ services:
     command: >
       --config /etc/livekit.yaml
     environment:
-      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-devkey}:${LIVEKIT_API_SECRET:-devsecret}"
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-devkey}: ${LIVEKIT_API_SECRET:-devsecret}"
+      LIVEKIT_API_KEY: "${LIVEKIT_API_KEY:-devkey}"
+      LIVEKIT_API_SECRET: "${LIVEKIT_API_SECRET:-devsecret}"
+      TURN_USERNAME: "${TURN_USERNAME:-turnuser}"
+      TURN_PASSWORD: "${TURN_PASSWORD:-turnpass}"
     volumes:
       - ./docker/livekit.yaml:/etc/livekit.yaml:ro
     ports:
