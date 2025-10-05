@@ -23,10 +23,7 @@ class AuthController extends Controller
         return back()->with('error', 'Email veya şifre hatalı!');
     }
 
-    public function dashboard()
-    {
-        return view('admin.dashboard'); // Burayı sonra oluşturacağız
-    }
+    // dashboard action is handled by DashboardController. Keeping only auth actions here.
 
     public function logout(Request $request)
     {

@@ -65,6 +65,18 @@ class IslerController extends Controller
 
             $avukat = auth('avukat')->user();
 
+            // Subscription job limit enforcement
+            if (!$avukat->canCreateJob()) {
+                $message = 'Paket limitiniz dolu veya aktif bir aboneliğiniz bulunmuyor.';
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $message,
+                    ], 403);
+                }
+                return back()->with('danger', $message);
+            }
+
             // Konuşma oluştur veya mevcut konuşmayı al
             $conv = Conversation::firstOrCreate([
                 'avukat_id' => $avukat->id,
@@ -334,352 +346,24 @@ class IslerController extends Controller
 
     public function teklifKabul(Request $request, $is_id, $teklif_id)
     {
-        $avukat = auth('avukat')->user();
-
-        $is = Isler::where('avukat_id', $avukat->id)
-            ->where('id', $is_id)
-            ->firstOrFail();
-
-        $teklif = IsTeklifi::where('is_id', $is->id)
-            ->where('id', $teklif_id)
-            ->where('durum', 'bekliyor')
-            ->firstOrFail();
-
-        // Teklif tutarını al
-        $tutar = $teklif->jeton;
-
-        // Avukatın bakiyesini kontrol et
-        if ($avukat->balance < $tutar) {
-            return back()->with('danger', 'Bakiyeniz yetersiz!');
-        }
-
-        // İşlemi başlat: Veritabanı bütünlüğü için transaction kullanıyoruz
-        DB::beginTransaction();
-        try {
-            // Teklifi kabul et
-            $teklif->update(['durum' => 'kabul']);
-
-            // Diğer teklifleri reddet
-            IsTeklifi::where('is_id', $is->id)
-                ->where('id', '!=', $teklif->id)
-                ->update(['durum' => 'reddedildi']);
-
-            // Avukat bakiyesinden düş
-            $avukat->decrement('balance', $tutar);
-
-            // Kâtip bakiyesine ekle
-            $katip = \App\Models\Katip::findOrFail($teklif->katip_id);
-            $katip->increment('balance', $tutar);
-
-            // KatipTransaction kaydı oluştur
-            \App\Models\KatipTransaction::create([
-                'katip_id'    => $teklif->katip_id,
-                'is_id'       => $is->id,
-                'type'        => 'kazanc',
-                'amount'      => $tutar,
-                'status'      => 'tamamlandi',
-                'description' => "İş #{$is->id} için teklif kabul edildi: {$is->islem_tipi}, {$tutar} jeton",
-            ]);
-
-            // JobEvent kaydı
-            JobEvent::create([
-                'is_id'        => $is->id,
-                'event_type'   => 'Teklif Kabul Edildi',
-                'description'  => 'Avukat, kâtibin teklifini kabul etti: ' . $tutar . ' jeton.',
-                'metadata'     => [
-                    'islem_tipi' => $is->islem_tipi,
-                    'adliye'     => optional($is->adliye)->ad,
-                    'teklif'     => $tutar,
-                ],
-                'creator_type' => get_class($avukat),
-                'creator_id'   => $avukat->id,
-            ]);
-
-            // Mesaj oluştur
-            $conv = Conversation::firstOrCreate([
-                'avukat_id' => $avukat->id,
-                'katip_id'  => $teklif->katip_id,
-            ]);
-
-            $html = '<div class="">';
-            $html .= '<strong>✅ Teklif Kabul Edildi</strong>';
-            $html .= '<p>Avukat, <code>#' . $teklif->katip->username . '</code> tarafından verilen <strong>' . $tutar . ' jeton</strong> teklifini kabul etti.</p>';
-            $html .= '</div>';
-
-            $message = Message::create([
-                'conversation_id' => $conv->id,
-                'sender_type'     => 'Avukat',
-                'sender_id'       => $avukat->id,
-                'receiver_type'   => 'Katip',
-                'receiver_id'     => $teklif->katip_id,
-                'message'         => $html,
-            ]);
-
-            broadcast(new MessageSent($message))->toOthers();
-
-            // Kâtibe bildirim (Opsiyonel)
-            \App\Models\Notification::create([
-                'user_id'   => $teklif->katip_id,
-                'user_type' => 'App\Models\Katip',
-                'is_id'     => $is->id,
-                'type'      => 'teklif_kabul',
-                'message'   => "Avukat #{$avukat->username} teklifinizi kabul etti: {$is->islem_tipi}, {$tutar} jeton",
-                'data'      => [
-                    'is_id'   => $is->id,
-                    'teklif'  => $tutar,
-                ],
-            ]);
-
-            // İşlem başarılı, commit yap
-            DB::commit();
-            return back()->with('success', 'Teklif başarıyla kabul edildi.');
-        } catch (\Exception $e) {
-            // Hata olursa rollback yap
-            DB::rollBack();
-            return back()->with('danger', 'Bir hata oluştu: ' . $e->getMessage());
-        }
+        return back()->with('danger', 'Teklif akışı devre dışı bırakıldı.');
     }
 
     public function teklifReddet(Request $request, $is_id, $teklif_id)
     {
-        $avukat = auth('avukat')->user();
-
-        $is = \App\Models\Isler::where('avukat_id', $avukat->id)
-            ->where('id', $is_id)
-            ->firstOrFail();
-
-        $teklif = \App\Models\IsTeklifi::where('is_id', $is->id)
-            ->where('id', $teklif_id)
-            ->where('durum', 'bekliyor')
-            ->firstOrFail();
-
-        // Teklifi reddet
-        $teklif->update(['durum' => 'reddedildi']);
-
-        // JobEvent kaydı
-        \App\Models\JobEvent::create([
-            'is_id'        => $is->id,
-            'event_type'   => 'Teklif Reddedildi',
-            'description'  => 'Avukat, kâtibin teklifini reddetti: ' . $teklif->jeton . ' jeton.',
-            'metadata'     => [
-                'islem_tipi' => $is->islem_tipi,
-                'adliye'     => optional($is->adliye)->ad,
-                'teklif'     => $teklif->jeton,
-            ],
-            'creator_type' => get_class($avukat),
-            'creator_id'   => $avukat->id,
-        ]);
-
-        // Mesaj oluştur
-        $conv = \App\Models\Conversation::firstOrCreate([
-            'avukat_id' => $avukat->id,
-            'katip_id'  => $teklif->katip_id,
-        ]);
-
-        $html = '<div class="">';
-        $html .= '<strong>❌ Teklif Reddedildi</strong>';
-        $html .= '<p>Avukat, <code>#' . $teklif->katip->username . '</code> tarafından verilen <strong>' . $teklif->jeton . ' jeton</strong> teklifini reddetti.</p>';
-        $html .= '</div>';
-
-        $message = \App\Models\Message::create([
-            'conversation_id' => $conv->id,
-            'sender_type'     => 'Avukat',
-            'sender_id'       => $avukat->id,
-            'receiver_type'   => 'Katip',
-            'receiver_id'     => $teklif->katip_id,
-            'message'         => $html,
-        ]);
-
-        broadcast(new \App\Events\MessageSent($message))->toOthers();
-
-        return back()->with('success', 'Teklif reddedildi.');
+        return back()->with('danger', 'Teklif akışı devre dışı bırakıldı.');
     }
-
 
     public function ajaxTeklifOnayla($teklifId)
     {
-        $avukat = auth('avukat')->user();
-
-        // Teklif ve ilgili işi al
-        $teklif = \App\Models\IsTeklifi::where('id', $teklifId)
-            ->whereHas('isleri', function ($query) use ($avukat) {
-                $query->where('avukat_id', $avukat->id);
-            })
-            ->with('isleri', 'katip') // İlişkileri yükle
-            ->firstOrFail();
-
-        if ($teklif->durum !== 'bekliyor') {
-            return response()->json(['success' => false, 'error' => 'Bu teklif zaten işlenmiş.'], 422);
-        }
-
-        // Teklifi kabul et
-        $teklif->update(['durum' => 'kabul']);
-
-        // Diğer teklifleri reddet
-        \App\Models\IsTeklifi::where('is_id', $teklif->is_id)
-            ->where('id', '!=', $teklif->id)
-            ->update(['durum' => 'reddedildi']);
-
-
-        $is = \App\Models\Isler::where('avukat_id', $avukat->id)
-            ->where('id', $teklif->is_id)
-            ->firstOrFail();
-
-        // JobEvent kaydı
-        \App\Models\JobEvent::create([
-            'is_id'        => $teklif->is_id,
-            'event_type'   => 'Teklif Kabul Edildi',
-            'description'  => "Avukat, kâtibin teklifini kabul etti: {$teklif->jeton} jeton.",
-            'metadata'     => [
-                'islem_tipi' => $is->islem_tipi,
-                'adliye'     => optional($is->adliye)->ad,
-                'teklif'     => $teklif->jeton,
-            ],
-            'creator_type' => get_class($avukat),
-            'creator_id'   => $avukat->id,
-        ]);
-
-        // Mesaj oluştur
-        $conv = \App\Models\Conversation::firstOrCreate([
-            'avukat_id' => $avukat->id,
-            'katip_id'  => $teklif->katip_id,
-        ]);
-
-        $html = '<div>';
-        $html .= '<strong>✅ Teklif Kabul Edildi</strong>';
-        $html .= '<p>Avukat, <code>#' . ($teklif->katip->username ?? 'Bilinmeyen Kâtip') . '</code> tarafından verilen <strong>' . $teklif->jeton . ' jeton</strong> teklifini kabul etti.</p>';
-        $html .= '</div>';
-
-        $message = \App\Models\Message::create([
-            'conversation_id' => $conv->id,
-            'sender_type'     => 'Avukat',
-            'sender_id'       => $avukat->id,
-            'receiver_type'   => 'Katip',
-            'receiver_id'     => $teklif->katip_id,
-            'message'         => $html,
-        ]);
-
-        // Kâtibe bildirim
-        \App\Models\Notification::create([
-            'user_id'   => $teklif->katip_id,
-            'user_type' => 'App\Models\Katip',
-            'is_id'           => $is->id,
-            'type'            => 'teklif_onaylandi',
-            'message'         => "Avukat #{$avukat->username} teklifinizi onayladı: {$teklif->jeton} jeton.",
-            'data'            => [
-                'teklif_id' => $teklif->id,
-                'is_id'     => $is->id,
-            ],
-        ]);
-
-
-        // Gerçek zamanlı bildirim yayını (Kâtip için)
-        broadcast(new \App\Events\NotificationSent($teklif->katip_id, [
-            'is_id'      => $is->id,
-            'teklif_id'  => $teklif->id,
-            'type'       => 'teklif_onaylandi',
-            'message'    => "Avukat #{$avukat->username} teklifinizi onayladı: {$teklif->jeton} jeton.",
-            'created_at' => now()->format('H:i'),
-            'katip_username' => $teklif->katip->username ?? 'Bilinmeyen Kâtip',
-            'jeton'         => $teklif->jeton,
-        ]))->toOthers();
-
-
-        // Mesaj yayını
-        broadcast(new \App\Events\MessageSent($message))->toOthers();
-
-        return response()->json(['success' => true, 'message' => 'Teklif onaylandı.']);
+        return response()->json(['success' => false, 'error' => 'Teklif akışı devre dışı bırakıldı.'], 410);
     }
 
     public function ajaxTeklifReddet($teklifId)
     {
-        $avukat = auth('avukat')->user();
-
-        $teklif = \App\Models\IsTeklifi::where('id', $teklifId)
-            ->whereHas('isleri', function ($query) use ($avukat) {
-                $query->where('avukat_id', $avukat->id);
-            })
-            ->with('isleri', 'katip') // İlişkileri yükle
-            ->firstOrFail();
-
-        if ($teklif->durum !== 'bekliyor') {
-            return response()->json(['success' => false, 'error' => 'Bu teklif zaten işlenmiş.'], 422);
-        }
-
-        // Teklifi red et
-        $teklif->update(['durum' => 'reddedildi']);
-
-
-
-        $is = \App\Models\Isler::where('avukat_id', $avukat->id)
-            ->where('id', $teklif->is_id)
-            ->firstOrFail();
-
-        // JobEvent kaydı
-        \App\Models\JobEvent::create([
-            'is_id'        => $teklif->is_id,
-            'event_type'   => 'Teklif Red Edildi',
-            'description'  => "Avukat, kâtibin teklifini red etti: {$teklif->jeton} jeton.",
-            'metadata'     => [
-                'islem_tipi' => $is->islem_tipi,
-                'adliye'     => optional($is->adliye)->ad,
-                'teklif'     => $teklif->jeton,
-            ],
-            'creator_type' => get_class($avukat),
-            'creator_id'   => $avukat->id,
-        ]);
-
-        // Mesaj oluştur
-        $conv = \App\Models\Conversation::firstOrCreate([
-            'avukat_id' => $avukat->id,
-            'katip_id'  => $teklif->katip_id,
-        ]);
-
-        $html = '<div>';
-        $html .= '<strong>✅ Teklif Red Edildi</strong>';
-        $html .= '<p>Avukat, <code>#' . ($teklif->katip->username ?? 'Bilinmeyen Kâtip') . '</code> tarafından verilen <strong>' . $teklif->jeton . ' jeton</strong> teklifini red etti.</p>';
-        $html .= '</div>';
-
-        $message = \App\Models\Message::create([
-            'conversation_id' => $conv->id,
-            'sender_type'     => 'Avukat',
-            'sender_id'       => $avukat->id,
-            'receiver_type'   => 'Katip',
-            'receiver_id'     => $teklif->katip_id,
-            'message'         => $html,
-        ]);
-
-        // Kâtibe bildirim
-        \App\Models\Notification::create([
-            'user_id'   => $teklif->katip_id,
-            'user_type' => 'App\Models\Katip',
-            'is_id'           => $is->id,
-            'type'            => 'teklif_reddedildi',
-            'message'         => "Avukat #{$avukat->username} teklifinizi reddetti: {$teklif->jeton} jeton.",
-            'data'            => [
-                'teklif_id' => $teklif->id,
-                'is_id'     => $is->id,
-            ],
-        ]);
-
-
-        // Gerçek zamanlı bildirim yayını (Kâtip için)
-        broadcast(new \App\Events\NotificationSent($teklif->katip_id, [
-            'is_id'      => $is->id,
-            'teklif_id'  => $teklif->id,
-            'type'       => 'teklif_reddedildi',
-            'message'    => "Avukat #{$avukat->username} teklifinizi reddetti: {$teklif->jeton} jeton.",
-            'created_at' => now()->format('H:i'),
-            'katip_username' => $teklif->katip->username ?? 'Bilinmeyen Kâtip',
-            'jeton'         => $teklif->jeton,
-        ]))->toOthers();
-
-
-        // Mesaj yayını
-        broadcast(new \App\Events\MessageSent($message))->toOthers();
-
-        return response()->json(['success' => true, 'message' => 'Teklif reddedildi.']);
+        return response()->json(['success' => false, 'error' => 'Teklif akışı devre dışı bırakıldı.'], 410);
     }
+
     public function markAsRead(Request $request)
     {
         $avukat = auth('avukat')->user();

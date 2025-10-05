@@ -346,33 +346,15 @@
 
                     @if($is->durum === 'bekliyor' && !$is->katip_onay)
                         <div class="alert alert-info">İş kâtibe gönderildi, kâtip onayı bekleniyor.</div>
-                    @elseif($is->durum === 'devam ediyor' && !$is->teklifler->where('katip_id', $is->katip_id)->isNotEmpty())
-                        <div class="alert alert-warning">Kâtip işi onayladı, teklif bekleniyor.</div>
-                    @elseif($is->durum === 'devam ediyor' && $is->teklifler->where('katip_id', $is->katip_id)->where('durum', 'bekliyor')->isNotEmpty())
-                        <div class="alert alert-info">Kâtip bir teklif verdi, onayınızı bekliyor.</div>
-                        <div class="d-flex gap-2">
-                            <!-- Teklifi Onayla -->
-                            <form action="{{ route('avukat.isler.teklifKabul', ['is_id' => $is->id, 'teklif_id' => $is->teklifler->where('katip_id', $is->katip_id)->where('durum', 'bekliyor')->first()->id]) }}" method="POST" style="display:inline;">
-                                @csrf
-                                <button type="submit" class="btn btn-success" onclick="return confirm('Bu teklifi onaylamak istediğinize emin misiniz?')">Teklifi Onayla</button>
-                            </form>
-                            <!-- Teklifi Reddet -->
-                            <form action="{{ route('avukat.isler.teklifReddet', ['is_id' => $is->id, 'teklif_id' => $is->teklifler->where('katip_id', $is->katip_id)->where('durum', 'bekliyor')->first()->id]) }}" method="POST" style="display:inline;">
-                                @csrf
-                                <button type="submit" class="btn btn-danger" onclick="return confirm('Bu teklifi reddetmek istediğinize emin misiniz?')">Teklifi Reddet</button>
-                            </form>
-                        </div>
-                    @elseif($is->durum === 'devam ediyor' && $is->teklifler->where('katip_id', $is->katip_id)->where('durum', 'kabul')->isNotEmpty())
-                        <div class="alert alert-success">Teklifi onayladınız, kâtip teslimat yapmayı bekliyor.</div>
+                    @elseif($is->durum === 'devam ediyor')
+                        <div class="alert alert-warning">Kâtip işi onayladı, süreç başladı.</div>
                     @elseif($is->durum === 'tamamlandi' && !$is->avukat_onay)
                         <div class="alert alert-warning">Kâtip işi teslim etti, lütfen inceleyip onaylayın.</div>
-                        <form action="{{ route('avukat.isler.onayla', $is->id) }}" method="POST" class="d-grid mb-3">
+                        <form action="{{ route('avukat.isler.onayla', $is->id) }}" method="POST" class="mt-2">
                             @csrf
-                            <button class="btn btn-success"><i class="bi bi-check-circle me-2"></i>İşi Onayla</button>
+                            <button type="submit" class="btn btn-success w-100" onclick="return confirm('İşi onaylamak istediğinize emin misiniz?')">İşi Onayla</button>
                         </form>
-                    @elseif($is->durum === 'tamamlandi' && $is->avukat_onay && !\App\Models\AvukatPuan::where('is_id', $is->id)->where('avukat_id', auth('avukat')->id())->exists())
-                        <div class="alert alert-danger">İşi onayladınız, ancak henüz değerlendirme yapmadınız!</div>
-                    @elseif($is->durum === 'tamamlandi' && $is->avukat_onay && \App\Models\AvukatPuan::where('is_id', $is->id)->where('avukat_id', auth('avukat')->id())->exists())
+                    @elseif($is->durum === 'tamamlandi' && $is->avukat_onay)
                         <div class="alert alert-success">İş tamamlandı ve değerlendirildi.</div>
                     @elseif($is->durum === 'reddedildi')
                         <div class="alert alert-danger">İş kâtip tarafından reddedildi.</div>
@@ -420,41 +402,10 @@
         <!-- Sağ Sütun (Tüm İçerik) -->
         <div class="col-md-9">
             <div class="row g-3">
-                <!-- Sol Taraf (Teklifler, Teslimatlar, Yorumlar) -->
+                <!-- Sol Taraf (Teslimatlar, Yorumlar) -->
                 <div class="col-md-8">
-                    <!-- Teklifler -->
-                    <div class="card mb-20">
-                        <div class="card-header"><h6 class="mb-0"><i class="bi bi-cash me-2"></i>Teklifler</h6></div>
-                        <div class="card-body">
-                            @forelse($is->teklifler as $teklif)
-                                <div class="border-bottom pb-2 mb-2">
-                                    <div class="d-flex align-items-center mb-1">
-                                        @if($teklif->katip && optional($teklif->katip->avatar)->path)
-                                            <img src="{{ asset($teklif->katip->avatar->path) }}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
-                                        @else
-                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 0.9rem;">
-                                                {{ strtoupper(substr($teklif->katip->username ?? '?', 0, 1)) }}
-                                            </div>
-                                        @endif
-                                        <div>
-                                            <h6 class="mb-0">{{ $teklif->katip->username }}</h6>
-                                            <small class="text-muted">{{ $teklif->created_at->format('d.m.Y H:i') }}</small>
-                                        </div>
-                                    </div>
-                                    <p class="mb-1">Teklif: {{ $teklif->jeton }} Jeton</p>
-                                    @if($teklif->mesaj)
-                                        <p class="mb-1"><em>"{{ $teklif->mesaj }}"</em></p>
-                                    @endif
-                                    <span class="badge bg-{{ $teklif->durum === 'kabul' ? 'success' : ($teklif->durum === 'reddedildi' ? 'danger' : 'secondary') }}">
-                                            {{ ucfirst($teklif->durum) }}
-                                        </span>
-                                </div>
-                            @empty
-                                <div class="alert alert-info">Henüz teklif yok.</div>
-                            @endforelse
-                        </div>
-                    </div>
-
+                    <!-- Teklifler (devre dışı) -->
+                    
                     <!-- Teslimatlar -->
                     @if($is->durum === 'devam ediyor' || $is->durum === 'tamamlandi')
                         <div class="card mb-20">
@@ -463,7 +414,7 @@
                                 @forelse($is->teslimatlar as $teslimat)
                                     <div class="border-bottom pb-2 mb-2">
                                         <div class="d-flex align-items-center mb-1">
-                                            @if($teslimat->katip && optional($teslimat->katip->avatar)->path)
+                                            @if($teslimat->katip->avatar)
                                                 <img src="{{ asset($teslimat->katip->avatar->path) }}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
                                             @else
                                                 <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 0.9rem;">

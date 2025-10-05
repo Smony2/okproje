@@ -117,8 +117,10 @@ class AvukatDasboardController extends Controller
 
 
 
-        // Bildirimler
+        // Bildirimler ve abonelik bilgileri
         $avukat = auth('avukat')->user();
+        $subscription = $avukat->subscription;
+        $remainingJobs = $avukat->remaining_jobs_in_period; // null => sınırsız
         $bildirimler = $avukat->notifications()->latest()->take(8)->get();
         $okunmamisBildirimSayisi = $avukat->unreadNotifications()->count();
 
@@ -131,7 +133,8 @@ class AvukatDasboardController extends Controller
             'yorumYapilanKatip', 'islerim', 'aylikVeriler', 'puanDagilimi',
             'performansMetrikleri', 'sonTeklifler', 'sonOdemeler',
             'bekleyenTeklifSayisi', 'bildirimler', 'okunmamisBildirimSayisi',
-            'aylikIsler', 'puanlar' // Eski sistem için
+            'aylikIsler', 'puanlar', // Eski sistem için
+            'subscription', 'remainingJobs'
         ));
     }
 }

@@ -94,6 +94,8 @@
                 </div>
             </div>
 
+            
+
             {{-- Mesleki Bilgiler --}}
             <div class="card shadow-sm">
                 <div class="card-header fw-semibold">Mesleki Bilgiler</div>
@@ -153,6 +155,12 @@
                         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#ban" type="button">
                             <iconify-icon icon="mdi:block-helper"></iconify-icon>
                             Banla / Sil
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#subscription" type="button">
+                            <iconify-icon icon="mdi:card-account-details-outline"></iconify-icon>
+                            Subscription
                         </button>
                     </li>
                 </ul>
@@ -262,7 +270,6 @@
                             </div>
                         </div>
 
-
                         <div class="tab-pane fade" id="puanlar">
                             @forelse($puanlar as $p)
                                 <div class="border-bottom py-2">
@@ -284,6 +291,117 @@
                             @empty
                                 <p class="text-muted">Log kaydı yok.</p>
                             @endforelse
+                        </div>
+
+                        {{-- SUBSCRIPTION TAB --}}
+                        <div class="tab-pane fade" id="subscription">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        Mevcut Durum: 
+                                        @if($avukat->subscription)
+                                            <strong>{{ $avukat->subscription->name }}</strong>
+                                            ({{ $avukat->subscription_status }})
+                                            — Bitiş: {{ optional($avukat->subscription_end_date)->format('d.m.Y H:i') ?? '-' }}
+                                        @else
+                                            <strong>Tanımlı paket yok</strong>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <div class="col-md-8">
+                                    <form action="{{ route('admin.avukatlar.subscription.assign', $avukat->id) }}" method="POST" class="d-flex gap-2">
+                                        @csrf
+                                        <select name="subscription_id" class="form-select" required>
+                                            <option value="">Paket seçin</option>
+                                            @foreach(\App\Models\Subscription::active()->orderBy('sort_order')->get() as $paket)
+                                                <option value="{{ $paket->id }}" @selected($avukat->subscription_id===$paket->id)>
+                                                    {{ $paket->name }} — {{ $paket->formatted_price }} / {{ $paket->duration_days }}g
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <button class="btn btn-primary">Ata / Güncelle</button>
+                                    </form>
+                                </div>
+
+                                <div class="col-md-4 text-end">
+                                    @if($avukat->subscription_id)
+                                        <form action="{{ route('admin.avukatlar.subscription.unassign', $avukat->id) }}" method="POST" onsubmit="return confirm('Paket kaldırılacak, emin misiniz?')">
+                                            @csrf @method('DELETE')
+                                            <button class="btn btn-outline-danger">Kaldır</button>
+                                        </form>
+                                    @endif
+                                </div>
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header fw-semibold">Abonelik / Ek İş Hakkı</div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <div>Mevcut Abonelik: <strong>{{ optional($avukat->subscription)->name ?? '—' }}</strong></div>
+                                                <div>Kalan Ek İş Hakkı: <strong>{{ $avukat->extra_job_credits ?? 0 }}</strong></div>
+                                            </div>
+                                            <form action="{{ route('admin.avukatlar.subscription.extra_jobs', $avukat->id) }}" method="POST" class="d-flex gap-2">
+                                                @csrf
+                                                <input type="number" name="extra" min="1" class="form-control" placeholder="Ek iş sayısı" required>
+                                                <input type="text" name="note" class="form-control" placeholder="Not (isteğe bağlı)">
+                                                <button class="btn btn-primary">Ekle</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header fw-semibold">Subscription Geçmişi</div>
+                                        <div class="card-body">
+                                            @if($subscriptionHistory->isEmpty())
+                                                <p class="text-muted mb-0">Geçmiş kayıt bulunamadı.</p>
+                                            @else
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm table-striped">
+                                                        <thead>
+                                                        <tr>
+                                                            <th>Tarih</th>
+                                                            <th>Tip</th>
+                                                            <th>Eski Paket</th>
+                                                            <th>Yeni Paket</th>
+                                                            <th>Detay</th>
+                                                            <th>Admin</th>
+                                                        </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                        @foreach($subscriptionHistory as $h)
+                                                            <tr>
+                                                                <td>{{ $h->created_at->format('d.m.Y H:i') }}</td>
+                                                                <td>{{ $h->change_type }}</td>
+                                                                <td>{{ optional(\App\Models\Subscription::find($h->old_subscription_id))->name ?? '-' }}</td>
+                                                                <td>{{ optional(\App\Models\Subscription::find($h->new_subscription_id))->name ?? '-' }}</td>
+                                                                <td>
+                                                                    @if($h->change_type === 'extra_jobs_added')
+                                                                        +{{ $h->extra_jobs_delta }} iş
+                                                                    @else
+                                                                        @if($h->new_start_date)
+                                                                            {{ \Carbon\Carbon::parse($h->new_start_date)->format('d.m.Y') }} - {{ \Carbon\Carbon::parse($h->new_end_date)->format('d.m.Y') }}
+                                                                        @endif
+                                                                        @if(!is_null($h->new_max_jobs))
+                                                                            , limit: {{ $h->new_max_jobs }}
+                                                                        @endif
+                                                                    @endif
+                                                                    @if($h->note)
+                                                                        <div class="text-muted small">{{ $h->note }}</div>
+                                                                    @endif
+                                                                </td>
+                                                                <td>{{ optional(\App\Models\Admin::find($h->performed_by_admin_id))->name ?? '-' }}</td>
+                                                            </tr>
+                                                        @endforeach
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div> {{-- tab-content --}}
                 </div>

@@ -95,7 +95,7 @@
         <div class="col-xxl-12 col-sm-6">
             <div class="row">
                 <!-- 1. Toplam Avukat -->
-                <div class="col-xxl-3 col-md-6 col-sm-6 mt-10">
+                <div class="col-xxl-4 col-md-6 col-sm-6 mt-10">
                     <div class="card px-24 py-16 shadow-none border h-100">
                         <div class="card-body p-0">
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
@@ -116,7 +116,7 @@
                 </div>
 
                 <!-- 2. Toplam Katip -->
-                <div class="col-xxl-3 col-md-6 col-sm-6 mt-10">
+                <div class="col-xxl-4 col-md-6 col-sm-6 mt-10">
                     <div class="card px-24 py-16 shadow-none border h-100">
                         <div class="card-body p-0">
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
@@ -137,7 +137,7 @@
                 </div>
 
                 <!-- 3. Aktif İşler -->
-                <div class="col-xxl-3 col-md-6 col-sm-6 mt-10">
+                <div class="col-xxl-4 col-md-6 col-sm-6 mt-10">
                     <div class="card px-24 py-16 shadow-none border h-100">
                         <div class="card-body p-0">
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
@@ -158,7 +158,7 @@
                 </div>
 
                 <!-- 4. Tamamlanan İşler -->
-                <div class="col-xxl-3 col-md-6 col-sm-6 mt-10">
+                <div class="col-xxl-4 col-md-6 col-sm-6 mt-10">
                     <div class="card px-24 py-16 shadow-none border h-100">
                         <div class="card-body p-0">
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
@@ -179,7 +179,7 @@
                 </div>
 
                 <!-- 5. İptal Edilen İşler -->
-                <div class="col-xxl-3 col-md-6 col-sm-6 mt-10">
+                <div class="col-xxl-4 col-md-6 col-sm-6 mt-10">
                     <div class="card px-24 py-16 shadow-none border h-100">
                         <div class="card-body p-0">
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
@@ -191,66 +191,6 @@
                                     </div>
                                     <div>
                                         <span class="mb-2 fw-medium text-secondary-light text-md">İptal Edilen İşler</span>
-                                        <h6 class="fw-semibold my-1">{{ $iptalEdilenIsler }}</h6>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-xxl-3 col-md-6 col-sm-6 mt-10">
-                    <div class="card px-24 py-16 shadow-none border h-100">
-                        <div class="card-body p-0">
-                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
-                                <div class="d-flex align-items-center">
-                                    <div class="w-64-px h-64-px radius-16 bg-base-50 d-flex justify-content-center align-items-center me-20">
-                                     <span class="mb-0 w-40-px h-40-px bg-warning-600 flex-shrink-0 text-white d-flex justify-content-center align-items-center radius-8 h6 mb-0">
-                                            <iconify-icon icon="streamline:bag-dollar-solid" class="icon"></iconify-icon>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span class="mb-2 fw-medium text-secondary-light text-md">Toplam Harcama</span>
-                                        <h6 class="fw-semibold my-1">{{ $iptalEdilenIsler }}</h6>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-xxl-3 col-md-6 col-sm-6 mt-10">
-                    <div class="card px-24 py-16 shadow-none border h-100">
-                        <div class="card-body p-0">
-                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
-                                <div class="d-flex align-items-center">
-                                    <div class="w-64-px h-64-px radius-16 bg-base-50 d-flex justify-content-center align-items-center me-20">
-                                     <span class="mb-0 w-40-px h-40-px bg-warning-600 flex-shrink-0 text-white d-flex justify-content-center align-items-center radius-8 h6 mb-0">
-                                            <iconify-icon icon="streamline:bag-dollar-solid" class="icon"></iconify-icon>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span class="mb-2 fw-medium text-secondary-light text-md">Toplam Harcama</span>
-                                        <h6 class="fw-semibold my-1">{{ $iptalEdilenIsler }}</h6>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-xxl-3 col-md-6 col-sm-6 mt-10">
-                    <div class="card px-24 py-16 shadow-none border h-100">
-                        <div class="card-body p-0">
-                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
-                                <div class="d-flex align-items-center">
-                                    <div class="w-64-px h-64-px radius-16 bg-base-50 d-flex justify-content-center align-items-center me-20">
-                                     <span class="mb-0 w-40-px h-40-px bg-warning-600 flex-shrink-0 text-white d-flex justify-content-center align-items-center radius-8 h6 mb-0">
-                                            <iconify-icon icon="streamline:bag-dollar-solid" class="icon"></iconify-icon>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span class="mb-2 fw-medium text-secondary-light text-md">Toplam Harcama</span>
                                         <h6 class="fw-semibold my-1">{{ $iptalEdilenIsler }}</h6>
                                     </div>
                                 </div>

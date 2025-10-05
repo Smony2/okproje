@@ -10,6 +10,8 @@ use App\Models\IsPuan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Activitylog\Models\Activity;
+use App\Models\SubscriptionHistory;
+use App\Models\Subscription;
 
 class AvukatController extends Controller
 {
@@ -25,6 +27,11 @@ class AvukatController extends Controller
             'transactions'=>fn($q)=>$q->latest()->take(5)])
             ->findOrFail($id);
 
+        $subscriptionHistory = \App\Models\SubscriptionHistory::where('avukat_id', $avukat->id)
+            ->latest()
+            ->limit(50)
+            ->get();
+
         // Son 20 log kaydı
         $logs = Activity::forSubject($avukat)->latest()->limit(20)->get();
 
@@ -38,7 +45,7 @@ class AvukatController extends Controller
 
 
 
-        return view('admin.avukatlar.detay', compact('avukat','logs','puanlar','avatar'));
+        return view('admin.avukatlar.detay', compact('avukat','logs','puanlar','avatar','subscriptionHistory'));
     }
 
     public function ban($id)
@@ -169,5 +176,90 @@ class AvukatController extends Controller
         $avukat->delete();
 
         return redirect()->route('admin.avukatlar.index')->with('success', 'Avukat silindi.');
+    }
+
+    public function assignSubscription(Request $request, $id)
+    {
+        $request->validate([
+            'subscription_id' => 'required|exists:subscriptions,id',
+        ]);
+
+        $avukat = Avukat::findOrFail($id);
+        $subscription = Subscription::findOrFail($request->subscription_id);
+
+        SubscriptionHistory::create([
+            'avukat_id' => $avukat->id,
+            'subscription_id' => $subscription->id,
+            'performed_by_admin_id' => auth('admin')->id(),
+            'change_type' => 'assigned',
+            'old_subscription_id' => $avukat->subscription_id,
+            'new_subscription_id' => $subscription->id,
+            'old_duration_days' => null,
+            'new_duration_days' => $subscription->duration_days,
+            'old_max_jobs' => null,
+            'new_max_jobs' => $subscription->max_jobs,
+            'old_start_date' => $avukat->subscription_start_date,
+            'old_end_date' => $avukat->subscription_end_date,
+            'new_start_date' => now(),
+            'new_end_date' => now()->addDays($subscription->duration_days),
+        ]);
+
+        $avukat->subscription_id = $subscription->id;
+        $avukat->subscription_is_active = true;
+        $avukat->subscription_start_date = now();
+        $avukat->subscription_end_date = now()->addDays($subscription->duration_days);
+        $avukat->save();
+
+        return back()->with('success', 'Subscription avukata atandı.');
+    }
+
+    public function unassignSubscription($id)
+    {
+        $avukat = Avukat::findOrFail($id);
+        SubscriptionHistory::create([
+            'avukat_id' => $avukat->id,
+            'subscription_id' => $avukat->subscription_id,
+            'performed_by_admin_id' => auth('admin')->id(),
+            'change_type' => 'unassigned',
+            'old_subscription_id' => $avukat->subscription_id,
+            'new_subscription_id' => null,
+            'old_duration_days' => null,
+            'new_duration_days' => null,
+            'old_max_jobs' => null,
+            'new_max_jobs' => null,
+            'old_start_date' => $avukat->subscription_start_date,
+            'old_end_date' => $avukat->subscription_end_date,
+            'new_start_date' => null,
+            'new_end_date' => null,
+        ]);
+        $avukat->subscription_id = null;
+        $avukat->subscription_is_active = false;
+        $avukat->subscription_start_date = null;
+        $avukat->subscription_end_date = null;
+        $avukat->save();
+
+        return back()->with('success', 'Subscription avukattan kaldırıldı.');
+    }
+
+    public function addExtraJobs(Request $request, $id)
+    {
+        $request->validate([
+            'extra' => 'required|integer|min:1',
+            'note' => 'nullable|string',
+        ]);
+
+        $avukat = Avukat::findOrFail($id);
+        $avukat->increment('extra_job_credits', (int)$request->extra);
+
+        SubscriptionHistory::create([
+            'avukat_id' => $avukat->id,
+            'subscription_id' => $avukat->subscription_id,
+            'performed_by_admin_id' => auth('admin')->id(),
+            'change_type' => 'extra_jobs_added',
+            'extra_jobs_delta' => (int)$request->extra,
+            'note' => $request->note,
+        ]);
+
+        return back()->with('success', 'Ek iş hakkı eklendi.');
     }
 }

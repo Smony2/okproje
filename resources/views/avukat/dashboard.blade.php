@@ -479,26 +479,7 @@
                         </div>
                     </div>
                 </div>
-                <!-- 3. Bekleyen Teklif -->
-                <div class="col-xxl-4 col-sm-6 mt-3">
-                    <div class="card px-24 py-16 shadow-none border h-100">
-                        <div class="card-body p-0">
-                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
-                                <div class="d-flex align-items-center">
-                                    <div class="w-64-px h-64-px radius-16 bg-base-50 d-flex justify-content-center align-items-center me-20">
-                                        <span class="mb-0 w-40-px h-40-px bg-info-600 flex-shrink-0 text-white d-flex justify-content-center align-items-center radius-8 h6 mb-0">
-                                            <iconify-icon icon="fluent:mail-unread-16-filled" class="icon"></iconify-icon>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span class="mb-2 fw-medium text-secondary-light text-md">Bekleyen Teklif</span>
-                                        <h6 class="fw-semibold my-1">{{ $bekleyenTeklifSayisi }}</h6>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                
                 <!-- 4. Yorum Yapılan Katip -->
                 <div class="col-xxl-4 col-sm-6 mt-3">
                     <div class="card px-24 py-16 shadow-none border h-100">
@@ -519,46 +500,7 @@
                         </div>
                     </div>
                 </div>
-                <!-- 5. Toplam Jeton -->
-                <div class="col-xxl-4 col-sm-6 mt-3">
-                    <div class="card px-24 py-16 shadow-none border h-100">
-                        <div class="card-body p-0">
-                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
-                                <div class="d-flex align-items-center">
-                                    <div class="w-64-px h-64-px radius-16 bg-base-50 d-flex justify-content-center align-items-center me-20">
-                                        <span class="mb-0 w-40-px h-40-px bg-cyan-600 flex-shrink-0 text-white d-flex justify-content-center align-items-center radius-8 h6 mb-0">
-                                            <iconify-icon icon="solar:wallet-bold" class="icon"></iconify-icon>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span class="mb-2 fw-medium text-secondary-light text-md">Toplam Jeton</span>
-                                        <h6 class="fw-semibold my-1">{{ number_format(auth('avukat')->user()->balance ?? 0, 0, ',', '.') }}</h6>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- 6. Toplam Harcama -->
-                <div class="col-xxl-4 col-sm-6 mt-3">
-                    <div class="card px-24 py-16 shadow-none border h-100">
-                        <div class="card-body p-0">
-                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-1 mb-8">
-                                <div class="d-flex align-items-center">
-                                    <div class="w-64-px h-64-px radius-16 bg-base-50 d-flex justify-content-center align-items-center me-20">
-                                        <span class="mb-0 w-40-px h-40-px bg-success-600 flex-shrink-0 text-white d-flex justify-content-center align-items-center radius-8 h6 mb-0">
-                                            <iconify-icon icon="streamline:bag-dollar-solid" class="icon"></iconify-icon>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span class="mb-2 fw-medium text-secondary-light text-md">Toplam Harcama</span>
-                                        <h6 class="fw-semibold my-1">{{ number_format($toplamHarcama, 0, ',', '.') }} Jeton</h6>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            
             </div>
         </div>
     </div>
@@ -691,141 +633,6 @@
 
 
 
-
-
-
-                    <!-- Son Teklifler -->
-                    <div class="col-md-12">
-                        <div class="card modern-chart-card">
-                            <div class="card-header">
-                                <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
-                                    <h6 class="mb-0 fw-bold text-lg">
-                                        <iconify-icon icon="solar:document-add-bold" class="me-2 text-purple"></iconify-icon>
-                                        Son Teklifler
-                                    </h6>
-                                </div>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table modern-table mb-0">
-                                        <thead>
-                                        <tr>
-                                            <th scope="col">Katip</th>
-                                            <th scope="col">Adliye</th>
-                                            <th scope="col">Tarih</th>
-                                            <th scope="col">Jeton</th>
-                                            <th scope="col">Durum</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        @forelse($sonTeklifler as $teklif)
-                                            @php
-                                                $durumMap = [
-                                                    'bekliyor' => ['text-warning-600', 'bg-warning-100', 'status-btn waiting'],
-                                                    'kabul' => ['text-success-600', 'bg-success-100', 'status-btn completed'],
-                                                    'reddedildi' => ['text-danger-600', 'bg-danger-100', 'status-btn cancelled'],
-                                                ];
-                                                [$text, $bg, $statusClass] = $durumMap[$teklif->durum] ?? ['text-secondary', 'bg-secondary', 'status-btn'];
-                                            @endphp
-                                            <tr>
-                                                <td data-label="Katip">
-                                                    <span class="fw-medium">{{ $teklif->katip->username }}</span>
-                                                </td>
-                                                <td data-label="Adliye">{{ optional($teklif->isleri->adliye)->ad ?? '-' }}</td>
-                                                <td data-label="Tarih">{{ $teklif->created_at->locale('tr')->translatedFormat('d F Y H:i') }}</td>
-                                                <td data-label="Jeton">
-                                                    <span class="fw-bold text-primary">{{ $teklif->jeton }} Jeton</span>
-                                                </td>
-                                                <td data-label="Durum">
-                                                    <span class="{{ $statusClass }}">
-                                                        {{ ucfirst($teklif->durum) }}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="5" class="text-center text-muted py-4">
-                                                    <iconify-icon icon="solar:document-linear" class="text-4xl mb-2 opacity-50"></iconify-icon>
-                                                    <br>Henüz teklif yok.
-                                                </td>
-                                            </tr>
-                                        @endforelse
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Son Ödemeler -->
-                    <div class="col-md-12">
-                        <div class="card modern-chart-card">
-                            <div class="card-header">
-                                <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
-                                    <h6 class="mb-0 fw-bold text-lg">
-                                        <iconify-icon icon="solar:card-2-bold" class="me-2 text-success"></iconify-icon>
-                                        Son Ödemeler
-                                    </h6>
-                                    <a href="{{ route('avukat.odeme.gecmis') }}" class="text-primary-600 hover-text-primary d-flex align-items-center gap-1">
-                                        Tümünü Gör <iconify-icon icon="solar:alt-arrow-right-linear" class="icon"></iconify-icon>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table modern-table mb-0">
-                                        <thead>
-                                        <tr>
-                                            <th scope="col">Ödeme Türü</th>
-                                            <th scope="col">Tarih</th>
-                                            <th scope="col">Miktar</th>
-                                            <th scope="col">Durum</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        @php
-                                            $typeMap = [
-                                                'deposit' => 'Yatırım',
-                                                'withdraw' => 'Çekim',
-                                                'payment' => 'Ödeme',
-                                            ];
-                                            $statusMap = [
-                                                'completed' => ['status-btn completed', 'Onaylandı'],
-                                                'pending' => ['status-btn waiting', 'Bekliyor'],
-                                                'rejected' => ['status-btn cancelled', 'Reddedildi'],
-                                            ];
-                                        @endphp
-                                        @forelse($sonOdemeler as $odeme)
-                                            @php
-                                                [$statusClass, $statusLabel] = $statusMap[$odeme->status] ?? ['status-btn', ucfirst($odeme->status)];
-                                                $typeLabel = $typeMap[$odeme->type] ?? ucfirst($odeme->type);
-                                            @endphp
-                                            <tr>
-                                                <td data-label="Ödeme Türü">
-                                                    <span class="fw-medium">{{ $typeLabel }}</span>
-                                                </td>
-                                                <td data-label="Tarih">{{ $odeme->created_at->locale('tr')->translatedFormat('d F Y H:i') }}</td>
-                                                <td data-label="Miktar">
-                                                    <span class="fw-bold text-success">{{ number_format($odeme->amount, 2, ',', '.') }} ₺</span>
-                                                </td>
-                                                <td data-label="Durum">
-                                                    <span class="{{ $statusClass }}">{{ $statusLabel }}</span>
-                                                </td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="4" class="text-center text-muted py-4">
-                                                    <iconify-icon icon="solar:wallet-linear" class="text-4xl mb-2 opacity-50"></iconify-icon>
-                                                    <br>Henüz ödeme bulunamadı.
-                                                </td>
-                                            </tr>
-                                        @endforelse
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -951,58 +758,6 @@
                             </div>
                         </div>
                     </div>
-
-
-
-
-
-                    <!-- Puan Analizi -->
-                    <div class="col-md-12">
-                        <div class="card modern-chart-card">
-                            <div class="card-header">
-                                <div class="d-flex align-items-center flex-wrap gap-2 justify-content-between">
-                                    <h6 class="mb-0 fw-bold text-lg">
-                                        <iconify-icon icon="solar:star-bold" class="me-2 text-warning"></iconify-icon>
-                                        Puan Analizi
-                                    </h6>
-                                    <div class="rating-summary">
-                                        <span class="avg-rating">{{ $puanDagilimi['ortalama'] }}/5</span>
-                                        <div class="rating-stars">
-                                            @for($i = 1; $i <= 5; $i++)
-                                                <iconify-icon icon="solar:star-bold"
-                                                              class="{{ $i <= round($puanDagilimi['ortalama']) ? 'star-filled' : 'star-empty' }}">
-                                                </iconify-icon>
-                                            @endfor
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-lg-7">
-                                        <div class="modern-chart-container small">
-                                            <canvas id="modernRatingChart"></canvas>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-5">
-                                        <div class="rating-breakdown">
-                                            @for($i = 5; $i >= 1; $i--)
-                                                <div class="rating-row">
-                                                    <span class="rating-label">{{ $i }} Yıldız</span>
-                                                    <div class="rating-bar">
-                                                        <div class="rating-fill" style="width: {{ $puanDagilimi['yuzdelik'][$i] }}%"></div>
-                                                    </div>
-                                                    <span class="rating-count">{{ $puanDagilimi['veriler'][$i] }}</span>
-                                                </div>
-                                            @endfor
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-
                 </div>
             </div>
         </div>

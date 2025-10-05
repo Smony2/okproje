@@ -52,13 +52,13 @@ Route::prefix('avukat')->name('avukat.isler.')->middleware(['auth:avukat','updat
     Route::post('/is/{id}/onayla', [\App\Http\Controllers\Avukat\IslerController::class, 'onayla'])->name('onayla');
     Route::post('/is/{id}/puanla', [\App\Http\Controllers\Avukat\IslerController::class, 'puanla'])->name('puanla');
 
-    // Teklif Onaylama ve Reddettirme Routeları
-    Route::post('/is/{is_id}/teklif/{teklif_id}/kabul', [\App\Http\Controllers\Avukat\IslerController::class, 'teklifKabul'])->name('teklifKabul');
-    Route::post('/is/{is_id}/teklif/{teklif_id}/reddet', [\App\Http\Controllers\Avukat\IslerController::class, 'teklifReddet'])->name('teklifReddet');
+    // Teklif Onaylama ve Reddettirme Routeları (devre dışı)
+    // Route::post('/is/{is_id}/teklif/{teklif_id}/kabul', [\App\Http\Controllers\Avukat\IslerController::class, 'teklifKabul'])->name('teklifKabul');
+    // Route::post('/is/{is_id}/teklif/{teklif_id}/reddet', [\App\Http\Controllers\Avukat\IslerController::class, 'teklifReddet'])->name('teklifReddet');
 
-    // AJAX Teklif Onayla ve Reddet
-    Route::post('/is/{teklifId}/ajax-teklif-onayla', [\App\Http\Controllers\Avukat\IslerController::class, 'ajaxTeklifOnayla'])->name('teklif.ajax-onayla');
-    Route::post('/is/{teklifId}/ajax-teklif-reddet', [\App\Http\Controllers\Avukat\IslerController::class, 'ajaxTeklifReddet'])->name('teklif.ajax-reddet');
+    // AJAX Teklif Onayla ve Reddet (devre dışı)
+    // Route::post('/is/{teklifId}/ajax-teklif-onayla', [\App\Http\Controllers\Avukat\IslerController::class, 'ajaxTeklifOnayla'])->name('teklif.ajax-onayla');
+    // Route::post('/is/{teklifId}/ajax-teklif-reddet', [\App\Http\Controllers\Avukat\IslerController::class, 'ajaxTeklifReddet'])->name('teklif.ajax-reddet');
 
     Route::post('/notifications/mark-as-read', [\App\Http\Controllers\Avukat\IslerController::class, 'markAsRead'])->name('notifications.markAsRead');
 });

@@ -39,6 +39,10 @@ class Avukat extends Authenticatable
         'balance',
         'last_active_at',
         'is_active',
+        'subscription_id',
+        'subscription_start_date',
+        'subscription_end_date',
+        'subscription_is_active',
 
 
 
@@ -59,6 +63,10 @@ class Avukat extends Authenticatable
         'puan' => 'float',
         'balance' => 'decimal:2',
         'last_active_at' => 'datetime',  // Veya 'timestamp' olarak da deneyebilirsin, ama 'datetime' öneririm
+        'subscription_start_date' => 'datetime',
+        'subscription_end_date' => 'datetime',
+        'subscription_is_active' => 'boolean',
+        'extra_job_credits' => 'integer',
 
 
     ];
@@ -134,5 +142,119 @@ class Avukat extends Authenticatable
     public function conversations()
     {
         return $this->hasMany(Conversation::class, 'avukat_id');
+    }
+
+    /**
+     * Get the subscription that belongs to the avukat.
+     */
+    public function subscription()
+    {
+        return $this->belongsTo(Subscription::class);
+    }
+
+    /**
+     * Check if avukat has an active subscription.
+     */
+    public function hasActiveSubscription()
+    {
+        return $this->subscription_is_active && 
+               $this->subscription_end_date && 
+               $this->subscription_end_date->isFuture();
+    }
+
+    /**
+     * Get the subscription status.
+     */
+    public function getSubscriptionStatusAttribute()
+    {
+        if (!$this->subscription_is_active) {
+            return 'inactive';
+        }
+
+        if (!$this->subscription_end_date) {
+            return 'unknown';
+        }
+
+        if ($this->subscription_end_date->isFuture()) {
+            return 'active';
+        }
+
+        return 'expired';
+    }
+
+    /**
+     * Check if avukat can create more jobs based on subscription limits.
+     */
+    public function canCreateJob()
+    {
+        if (!$this->subscription || !$this->hasActiveSubscription()) {
+            return false;
+        }
+
+        if ($this->subscription->hasUnlimitedJobs()) {
+            return true;
+        }
+
+        $periodStart = $this->subscription_start_date?->startOfDay();
+        $periodEnd   = $this->subscription_end_date?->endOfDay();
+
+        $currentJobCount = $this->isler()
+            ->when($periodStart, fn($q) => $q->where('created_at', '>=', $periodStart))
+            ->when($periodEnd, fn($q) => $q->where('created_at', '<=', $periodEnd))
+            ->whereNotIn('durum', ['reddedildi', 'iptal'])
+            ->count();
+
+        $baseLimit = (int)($this->subscription->max_jobs ?? 0);
+        $extra = (int)($this->extra_job_credits ?? 0);
+        return $currentJobCount < ($baseLimit + $extra);
+    }
+
+    /**
+     * Check if avukat can work with more katips based on subscription limits.
+     */
+    public function canWorkWithKatip()
+    {
+        if (!$this->subscription) {
+            return false;
+        }
+
+        if ($this->subscription->hasUnlimitedKatips()) {
+            return true;
+        }
+
+        // Bu kısım katip ilişkilerine göre güncellenebilir
+        return true; // Şimdilik true döndürüyoruz
+    }
+
+    public function getUsedJobsInPeriodAttribute()
+    {
+        if (!$this->subscription || !$this->hasActiveSubscription()) {
+            return 0;
+        }
+
+        $periodStart = $this->subscription_start_date?->startOfDay();
+        $periodEnd   = $this->subscription_end_date?->endOfDay();
+
+        return $this->isler()
+            ->when($periodStart, fn($q) => $q->where('created_at', '>=', $periodStart))
+            ->when($periodEnd, fn($q) => $q->where('created_at', '<=', $periodEnd))
+            ->whereNotIn('durum', ['reddedildi', 'iptal'])
+            ->count();
+    }
+
+    public function getRemainingJobsInPeriodAttribute()
+    {
+        if (!$this->subscription || !$this->hasActiveSubscription()) {
+            return 0;
+        }
+
+        if ($this->subscription->hasUnlimitedJobs()) {
+            return null; // sınırsız için null
+        }
+
+        $max = (int)($this->subscription->max_jobs ?? 0);
+        $used = (int)$this->used_jobs_in_period;
+        $remaining = max(0, $max - $used);
+        return $remaining;
     }
 }

@@ -224,6 +224,13 @@
                 </a>
             </li>
 
+            <li>
+                <a href="{{ route('admin.subscriptions.index') }}" class="{{ request()->routeIs('admin.subscriptions.*') ? 'active-page' : '' }}">
+                    <iconify-icon icon="mdi:card-account-details-outline" class="menu-icon"></iconify-icon>
+                    <span>Subscription Paketleri</span>
+                </a>
+            </li>
+
 
 
 

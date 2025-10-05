@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\AdminRoleController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\KatipController;
 use App\Http\Controllers\Admin\AdminTransactionController;
+use App\Http\Controllers\Admin\SubscriptionController;
 
 // Admin giriş yaptıktan sonra
 Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -42,6 +43,12 @@ Route::middleware(['auth:admin', 'role:superadmin'])->prefix('admin')->name('adm
     Route::delete('/yoneticiler/{admin}', [AdminController::class, 'destroy'])->name('yoneticiler.destroy');
 });
 
+// Subscription Yönetimi (Sadece Superadmin)
+Route::middleware(['auth:admin', 'role:superadmin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('subscriptions', SubscriptionController::class);
+    Route::patch('/subscriptions/{subscription}/toggle', [SubscriptionController::class, 'toggle'])->name('subscriptions.toggle');
+});
+
 // Login Ekranları (auth yok burada)
 Route::prefix('admin')->middleware('guest:admin')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('admin.login');
@@ -66,6 +73,9 @@ Route::middleware(['auth:admin', 'role:superadmin'])->prefix('admin')->name('adm
 
     Route::patch('/avukatlar/{id}/ban',   [AvukatController::class,'ban'])->name('avukatlar.ban');
     Route::patch('/avukatlar/{id}/unban', [AvukatController::class,'unban'])->name('avukatlar.unban');
+    Route::post('/avukatlar/{id}/subscription/assign', [AvukatController::class, 'assignSubscription'])->name('avukatlar.subscription.assign');
+    Route::delete('/avukatlar/{id}/subscription/unassign', [AvukatController::class, 'unassignSubscription'])->name('avukatlar.subscription.unassign');
+    Route::post('/avukatlar/{id}/subscription/extra-jobs', [\App\Http\Controllers\Admin\AvukatController::class, 'addExtraJobs'])->name('avukatlar.subscription.extra_jobs');
 });
 
 

@@ -50,8 +50,8 @@ Route::prefix('katip')->name('katip.isler.')->middleware(['auth:katip'])->group(
     Route::post('/is/{id}/ajax-onayla', [\App\Http\Controllers\Katip\IslerController::class, 'ajaxOnayla'])->name('ajax-onayla');
     Route::post('/is/{id}/ajax-reddet', [\App\Http\Controllers\Katip\IslerController::class, 'ajaxReddet'])->name('ajax-reddet');
 
-    // Teklif Ver
-    Route::post('/is/{id}/teklif-ver', [\App\Http\Controllers\Katip\IslerController::class, 'teklifVer'])->name('teklif_ver');
+    // Teklif Ver (devre dışı)
+    // Route::post('/is/{id}/teklif-ver', [\App\Http\Controllers\Katip\IslerController::class, 'teklifVer'])->name('teklif_ver');
 
     // Teslimat Yap
     Route::post('/is/{id}/teslimat-yap', [\App\Http\Controllers\Katip\IslerController::class, 'teslimForm'])->name('teslimat_yap');
@@ -73,8 +73,8 @@ Route::prefix('katip')->name('katip.')->middleware(['auth:katip'])->group(functi
     // Kazançlarım
     Route::get('kazanclarim', [\App\Http\Controllers\Katip\KazancController::class, 'index'])->name('kazanclar');
 
-    // Tekliflerim
-    Route::get('tekliflerim', [\App\Http\Controllers\Katip\TeklifController::class, 'index'])->name('tekliflerim');
+    // Tekliflerim (devre dışı)
+    // Route::get('tekliflerim', [\App\Http\Controllers\Katip\TeklifController::class, 'index'])->name('tekliflerim');
 
     // Teslimlerim
     Route::get('teslimlerim', [\App\Http\Controllers\Katip\TeslimController::class, 'index'])->name('teslimlerim');

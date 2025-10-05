@@ -350,12 +350,8 @@
                                 <button type="submit" class="btn btn-danger">Reddet</button>
                             </form>
                         </div>
-                    @elseif($islem->durum === 'devam ediyor' && !$islem->teklifler->where('katip_id', auth('katip')->id())->first())
-                        <div class="alert alert-success">İşi onayladınız, lütfen teklif verin.</div>
-                    @elseif($islem->durum === 'devam ediyor' && $islem->teklifler->where('katip_id', auth('katip')->id())->where('durum', 'bekliyor')->first())
-                        <div class="alert alert-info">Teklifiniz avukat tarafından onay bekliyor.</div>
-                    @elseif($islem->durum === 'devam ediyor' && $islem->teklifler->where('katip_id', auth('katip')->id())->where('durum', 'kabul')->first())
-                        <div class="alert alert-success">Teklifiniz avukat tarafından kabul edildi, lütfen teslimat yapın.</div>
+                    @elseif($islem->durum === 'devam ediyor')
+                        <div class="alert alert-success">İşi onayladınız, süreç başladı. Teslimat yapabilirsiniz.</div>
                     @elseif($islem->durum === 'tamamlandi' && !$islem->avukat_onay)
                         <div class="alert alert-warning">İşi teslim ettiniz, avukat onayı bekleniyor.</div>
                     @elseif($islem->durum === 'tamamlandi' && $islem->avukat_onay && !\App\Models\KatipPuan::where('is_id', $islem->id)->where('katip_id', auth('katip')->id())->exists())
@@ -406,74 +402,7 @@
                 <div class="col-md-8">
 
 
-                    <div class="card mb-20">
-                        <div class="card-header"><h6 class="mb-0"><i class="bi bi-cash me-2"></i>Teklifler</h6></div>
-                        <div class="card-body">
-                            @if($islem->durum === 'bekliyor')
-                                <div class="alert alert-info">İş avukattan geldi, onayınızı bekliyor. Lütfen işi onaylayın veya reddedin.</div>
-                            @elseif($islem->durum === 'devam ediyor')
-                                @php
-                                    // Kâtibin bekleyen veya kabul edilmiş bir teklifi var mı?
-                                    $aktifTeklif = $islem->teklifler->where('katip_id', auth('katip')->id())
-                                        ->whereIn('durum', ['bekliyor', 'kabul'])
-                                        ->first();
-                                @endphp
-
-                                @if(!$aktifTeklif)
-                                    <div class="alert alert-success">İşi onayladınız, lütfen teklif verin.</div>
-                                    <div class="form-section">
-                                        <form action="{{ route('katip.isler.teklif_ver', $islem->id) }}" method="POST">
-                                            @csrf
-                                            <div class="mb-3">
-                                                <label for="jeton" class="form-label">Teklif (Jeton)</label>
-                                                <input type="number" name="jeton" id="jeton" class="form-control" min="1" required placeholder="Teklifinizi girin...">
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="mesaj" class="form-label">Mesaj (isteğe bağlı)</label>
-                                                <textarea name="mesaj" id="mesaj" class="form-control" rows="3" placeholder="Teklifinizle ilgili bir mesaj yazabilirsiniz..."></textarea>
-                                            </div>
-                                            <button type="submit" class="btn btn-primary"><i class="bi bi-send me-2"></i>Teklif Ver</button>
-                                        </form>
-                                    </div>
-                                @else
-                                    @if($aktifTeklif->durum === 'bekliyor')
-                                        <div class="alert alert-info">Teklifiniz avukat tarafından onay bekliyor.</div>
-                                    @elseif($aktifTeklif->durum === 'kabul')
-                                        <div class="alert alert-success">Teklifiniz avukat tarafından kabul edildi, lütfen teslimat yapın.</div>
-                                    @endif
-                                @endif
-                            @else
-                                <div class="alert alert-info">Teklif verme işlemi bu aşamada mümkün değil.</div>
-                            @endif
-
-                            @forelse($islem->teklifler as $teklif)
-                                <div class="border-bottom pb-2 mb-2">
-                                    <div class="d-flex align-items-center mb-1">
-                                        @if($teklif->katip->avatar)
-                                            <img src="{{ asset($teklif->katip->avatar->path) }}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
-                                        @else
-                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 0.9rem;">
-                                                {{ strtoupper(substr($teklif->katip->username ?? '?', 0, 1)) }}
-                                            </div>
-                                        @endif
-                                        <div>
-                                            <h6 class="mb-0">{{ $teklif->katip->username }}</h6>
-                                            <small class="text-muted">{{ $teklif->created_at->format('d.m.Y H:i') }}</small>
-                                        </div>
-                                    </div>
-                                    <p class="mb-1">Teklif: {{ $teklif->jeton }} Jeton</p>
-                                    @if($teklif->mesaj)
-                                        <p class="mb-1"><em>"{{ $teklif->mesaj }}"</em></p>
-                                    @endif
-                                    <span class="badge bg-{{ $teklif->durum === 'kabul' ? 'success' : ($teklif->durum === 'reddedildi' ? 'danger' : 'secondary') }}">
-                    {{ ucfirst($teklif->durum) }}
-                </span>
-                                </div>
-                            @empty
-                                <div class="alert alert-info">Henüz teklif yok.</div>
-                            @endforelse
-                        </div>
-                    </div>
+                    
 
 
                     <!-- Teslimatlar -->
@@ -481,7 +410,7 @@
                         <div class="card mb-20">
                             <div class="card-header"><h6 class="mb-0"><i class="bi bi-upload me-2"></i>Teslimatlar</h6></div>
                             <div class="card-body">
-                                @if($islem->durum === 'devam ediyor' && $islem->teklifler->where('katip_id', auth('katip')->id())->where('durum', 'kabul')->first())
+                    @if($islem->durum === 'devam ediyor')
                                     <div class="form-section">
                                         <form action="{{ route('katip.isler.teslimat_yap', $islem->id) }}" method="POST" enctype="multipart/form-data">
                                             @csrf

@@ -296,7 +296,22 @@
                     </button>
 
                     <form class="navbar-search">
-                        <span class="fw-bold text-dark">Toplam Jeton : {{ number_format(auth('avukat')->user()->balance ?? 0, 0, ',', '.') }}</span>
+                        @php($av = auth('avukat')->user())
+                        @php($sub = $av?->subscription)
+                        <span class="fw-bold text-dark">
+                            @if($sub)
+                                Abonelik: {{ $sub->name }}
+                                — Kalan İş:
+                                @if($av?->remaining_jobs_in_period === null)
+                                    Sınırsız
+                                @else
+                                    {{ $av?->remaining_jobs_in_period }} / {{ $sub->max_jobs }}
+                                @endif
+                                — Bitiş: {{ optional($av?->subscription_end_date)->format('d.m.Y') ?? '-' }}
+                            @else
+                                Abonelik tanımlı değil
+                            @endif
+                        </span>
                     </form>
 
                 </div>
@@ -424,15 +439,13 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="customNotificationModalLabel">Yeni Teklif</h5>
+                        <h5 class="modal-title" id="customNotificationModalLabel">Yeni Bildirim</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body" id="customNotificationModalBody">
                         Bildirim yükleniyor...
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-sm btn-success" id="modalApproveBtn" data-teklif-id="">Onayla</button>
-                        <button type="button" class="btn btn-sm btn-danger" id="modalRejectBtn" data-teklif-id="">Reddet</button>
                         <a id="jobDetailLink" href="#" class="btn btn-sm btn-primary">İş Detayına Git</a>
                         <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Kapat</button>
                     </div>
@@ -447,7 +460,7 @@
         <div class="audio-permission-overlay" id="permissionOverlay" style="display: none;">
             <div class="audio-permission-content">
                 <h3>Bildirim ve Ses İzinleri</h3>
-                <p>Teklif ve mesajlar için anlık bildirim ve sesli uyarı almak ister misiniz?</p>
+                <p>Mesajlar için anlık bildirim ve sesli uyarı almak ister misiniz?</p>
                 <button id="allowPermissionBtn">İzin Ver</button>
                 <button id="denyPermissionBtn">Reddet</button>
             </div>
@@ -574,7 +587,7 @@
             });
 
             // Bildirim başlığı
-            const notificationTitle = data.type === 'teklif_onaylandi' ? 'Teklif Onaylandı' : (data.type ? data.type.replace(/_/g, ' ') : 'Yeni İş Talebi');
+            const notificationTitle = data.type ? data.type.replace(/_/g, ' ') : 'Yeni İş Talebi';
 
             // Yeni bildirim HTML’i
             const notificationHtml = `
@@ -607,9 +620,8 @@
                 });
             }
 
-            // Teklif bildirimi ise modal’ı aç
-            if (data.type === 'teklif_verildi') {
-                console.log('Teklif bildirimi tespit edildi, modal açılıyor');
+            // Modal’ı aç (genel bildirim)
+            if (true) {
                 const modalElement = document.getElementById('customNotificationModal');
                 if (modalElement) {
                     const modal = new bootstrap.Modal(modalElement, {
@@ -617,22 +629,15 @@
                         keyboard: false
                     });
                     const modalBody = document.getElementById('customNotificationModalBody');
-                    const approveBtn = document.getElementById('modalApproveBtn');
-                    const rejectBtn = document.getElementById('modalRejectBtn');
                     const jobDetailLink = document.getElementById('jobDetailLink');
 
                     // Modal içeriği
                     modalBody.innerHTML = `
-                    <p><strong>Size yeni bir teklif geldi!</strong></p>
-                    <p><strong>Kâtip:</strong> ${data.katip_username || 'Bilinmeyen Kâtip'}</p>
-                    <p><strong>Teklif:</strong> ${data.jeton || 'N/A'} Jeton</p>
+                    <p><strong>Yeni bildirim!</strong></p>
                     ${data.message ? `<p><strong>Mesaj:</strong> <em>${data.message}</em></p>` : ''}
                 `;
-                    approveBtn.setAttribute('data-teklif-id', data.teklif_id || '');
-                    rejectBtn.setAttribute('data-teklif-id', data.teklif_id || '');
                     jobDetailLink.setAttribute('href', data.is_id ? `/avukat/is-detay/${data.is_id}` : '#');
                     modal.show();
-                    console.log('Modal açıldı');
                 } else {
                     console.error('customNotificationModal bulunamadı. DOM yüklendi mi?');
                 }
@@ -688,90 +693,7 @@
             });
     });
 
-    // Teklif onaylama ve reddetme için AJAX
-    document.addEventListener('click', function(e) {
-        if (e.target.id === 'modalApproveBtn' || e.target.id === 'modalRejectBtn' || e.target.classList.contains('accept-teklif') || e.target.classList.contains('reject-teklif')) {
-            const teklifId = e.target.dataset.teklifId;
-            const action = e.target.id === 'modalApproveBtn' || e.target.classList.contains('accept-teklif') ? 'ajax-teklif-onayla' : 'ajax-teklif-reddet';
-
-            if (!teklifId) {
-                iziToast.show({
-                    title: 'Hata',
-                    message: 'Geçersiz teklif ID’si.',
-                    color: 'red',
-                    position: 'topRight',
-                    timeout: 3000,
-                });
-                return;
-            }
-
-            fetch(`/avukat/is/${teklifId}/${action}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                },
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Bildirimi güncelle
-                        const notificationItem = document.querySelector(`.notification-item[data-teklif-id="${teklifId}"]`);
-                        if (notificationItem) {
-                            notificationItem.querySelector('p').textContent = action === 'ajax-teklif-onayla' ? 'Teklif onaylandı!' : 'Teklif reddedildi!';
-                        }
-                        // İş detay sayfasındaki badge’i güncelle
-                        const teklifBadge = document.querySelector(`.teklif-badge[data-teklif-id="${teklifId}"]`);
-                        if (teklifBadge) {
-                            teklifBadge.textContent = action === 'ajax-teklif-onayla' ? 'Onaylandı' : 'Reddedildi';
-                            teklifBadge.className = `badge bg-${action === 'ajax-teklif-onayla' ? 'success' : 'danger'} teklif-badge`;
-                        }
-                        // İş detay sayfasındaki butonları kaldır
-                        const teklifActions = document.querySelector(`.teklif-actions[data-teklif-id="${teklifId}"]`);
-                        if (teklifActions) {
-                            teklifActions.remove();
-                        }
-                        // Bildirim sayısını güncelle
-                        const badges = document.querySelectorAll('.notification-badge');
-                        badges.forEach(badge => {
-                            let count = parseInt(badge.textContent) || 0;
-                            if (count > 0) {
-                                badge.textContent = count - 1;
-                                badge.style.display = count - 1 === 0 ? 'none' : 'flex';
-                            }
-                        });
-                        // Modal’ı kapat
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('customNotificationModal'));
-                        if (modal) modal.hide();
-                        iziToast.show({
-                            title: 'Başarılı',
-                            message: data.message,
-                            color: 'green',
-                            position: 'topRight',
-                            timeout: 3000,
-                        });
-                    } else {
-                        iziToast.show({
-                            title: 'Hata',
-                            message: data.error || 'Bir hata oluştu.',
-                            color: 'red',
-                            position: 'topRight',
-                            timeout: 3000,
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Hata:', error);
-                    iziToast.show({
-                        title: 'Hata',
-                        message: 'Bir hata oluştu.',
-                        color: 'red',
-                        position: 'topRight',
-                        timeout: 3000,
-                    });
-                });
-        }
-    });
+    // Teklif onay/red akışı kaldırıldı; sadece genel bildirim gösterimi kaldı
 </script>
 
 <script>

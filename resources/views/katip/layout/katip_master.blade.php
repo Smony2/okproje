@@ -465,12 +465,16 @@
                     <span>Kazançlarım</span>
                 </a>
             </li>
+            
+            {{-- Tekliflerim devre dışı --}}
+            {{--
             <li>
                 <a href="{{ route('katip.tekliflerim') }}" class="{{ request()->routeIs('katip.tekliflerim') ? 'active' : '' }}">
                     <iconify-icon icon="solar:card-outline" class="menu-icon"></iconify-icon>
                     <span>Tekliflerim</span>
                 </a>
             </li>
+            --}}
 
             <li class="sidebar-menu-group-title mt-20">Hesap Yönetimi</li>
             <li>
@@ -501,8 +505,8 @@
                         <iconify-icon icon="heroicons:bars-3-solid" class="icon"></iconify-icon>
                     </button>
                     <form class="navbar-search">
-                        <span class="fw-bold text-warning">Toplam Jeton : {{ number_format(auth('avukat')->user()->balance ?? 0, 0, ',', '.') }}</span>
-                    </form>
+                        
+                     </form>
                 </div>
             </div>
             <div class="col-auto">
