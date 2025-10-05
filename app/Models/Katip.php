@@ -151,4 +151,9 @@ class Katip extends Authenticatable
         return $this->notifications()->whereNull('read_at');
     }
 
+    public function transactions()
+    {
+        return $this->hasMany(KatipTransaction::class, 'katip_id');
+    }
+
 }

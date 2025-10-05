@@ -34,6 +34,17 @@ class Isler extends Model
         'updated_at' => 'datetime',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function (Isler $is) {
+            if ($is->isDirty('durum') && $is->durum === 'tamamlandi' && empty($is->is_tamamlandi_at)) {
+                $is->is_tamamlandi_at = now();
+            }
+        });
+    }
+
     // Avukat ilişki
     public function avukat()
     {

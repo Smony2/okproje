@@ -10,6 +10,8 @@ use App\Models\IsPuan;
 use App\Models\Katip;
 use App\Models\KatipAvatar;
 use App\Models\KatipPuan;
+use App\Models\Isler;
+use App\Models\KatipTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Activitylog\Models\Activity;
@@ -47,8 +49,37 @@ class KatipController extends Controller
         $avatar = KatipAvatar::where('katip_id', $id)->first();
         $tumAdliyeler = Adliye::orderBy('ad')->get();
 
+        // İstatistikler
+        $startOfMonth = now()->startOfMonth();
+        $endOfMonth = now()->endOfMonth();
 
-        return view('admin.katipler.detay', compact('katip','logs','puanlar','avatar','tumAdliyeler'));
+        $monthlyJobs = Isler::where('katip_id', $katip->id)
+            ->where('durum', 'tamamlandi')
+            ->whereBetween('is_tamamlandi_at', [$startOfMonth, $endOfMonth])
+            ->count();
+
+        $allTimeJobs = Isler::where('katip_id', $katip->id)
+            ->where('durum', 'tamamlandi')
+            ->count();
+
+        $stats = [
+            'month' => [
+                'jobs' => $monthlyJobs,
+            ],
+            'all' => [
+                'jobs' => $allTimeJobs,
+            ],
+        ];
+
+
+        return view('admin.katipler.detay', compact(
+            'katip',
+            'logs',
+            'puanlar',
+            'avatar',
+            'tumAdliyeler',
+            'stats'
+        ));
     }
 
     public function ban($id)
@@ -125,7 +156,7 @@ class KatipController extends Controller
                 'password' => 'required|string|min:6|confirmed',
             ]);
             $katip->password = Hash::make($request->password);
-            $avukat->save();
+            $katip->save();
             return back()->with('success', 'Şifre başarıyla güncellendi.');
         }
 

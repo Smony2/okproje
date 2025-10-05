@@ -537,8 +537,11 @@ class IslerController extends Controller
             'dosya_yolu' => $path,
         ]);
 
-        // İşi tamamlandı olarak işaretle
-        $islem->update(['durum' => 'tamamlandi']);
+        // İşi tamamlandı olarak işaretle ve zaman damgasını ata
+        $islem->update([
+            'durum' => 'tamamlandi',
+            'is_tamamlandi_at' => now(),
+        ]);
 
         // JobEvent kaydı
         JobEvent::create([

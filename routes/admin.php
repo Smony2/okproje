@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\KatipController;
 use App\Http\Controllers\Admin\AdminTransactionController;
 use App\Http\Controllers\Admin\SubscriptionController;
+use App\Http\Controllers\Admin\MessageController;
 
 // Admin giriş yaptıktan sonra
 Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -157,5 +158,12 @@ Route::middleware(['auth:admin', 'role:superadmin'])->prefix('admin')->name('adm
 
     // Katip kazançları
     Route::get('kazanc/katip', [\App\Http\Controllers\Admin\AdminIslerController::class, 'katipKazanc'])->name('kazanc.katip');
+
+    // Katip istatistikleri
+    Route::get('istatistik/katipler', [\App\Http\Controllers\Admin\KatipStatsController::class, 'index'])->name('istatistik.katipler');
+
+    // Özel Mesajlar
+    Route::get('mesajlar', [MessageController::class, 'index'])->name('mesajlar.index');
+    Route::get('mesajlar/{conversation}', [MessageController::class, 'show'])->name('mesajlar.show');
 
 });

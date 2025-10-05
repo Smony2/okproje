@@ -50,7 +50,7 @@
             <div class="card shadow-sm mb-3">
                 <div class="card-body text-center">
                     <div class="mb-3">
-                        @if($avatar)
+                        @if(is_object($avatar) && !empty($avatar->path))
                             <img src="{{ asset($avatar->path) }}" class="object-fit-cover rounded-circle" width="150" alt="Avatar">
                         @else
                             <img src="{{ asset('upload/no_image.jpg') }}" class="object-fit-cover rounded-circle" width="150" alt="Varsayılan Avatar">
@@ -79,8 +79,9 @@
                     <div class="info-row"><span class="info-label">Son giriş:</span><span class="info-value">{{ $katip->last_login_at?->format('d.m.Y H:i') ?? '—' }}</span></div>
                     <div class="info-row"><span class="info-label">Giriş sayısı::</span><span class="info-value">{{ $katip->giris_sayisi ?? 0 }}</span></div>
                     <div class="info-row"><span class="info-label">Bakiye:</span><span class="info-value">{{ number_format($katip->balance,2,',','.') }}</span></div>
-                    <div class="info-row"><span class="info-label">Toplam İş:</span><span class="info-value">0</span></div>
-
+                    <hr>
+                    <div class="info-row"><span class="info-label">Bu Ay İş:</span><span class="info-value">{{ $stats['month']['jobs'] ?? 0 }}</span></div>
+                    <div class="info-row"><span class="info-label">Tüm Zamanlar İş:</span><span class="info-value">{{ $stats['all']['jobs'] ?? 0 }}</span></div>
                 </div>
             </div>
 
@@ -261,6 +262,8 @@
                                 <p class="text-muted">Kayıtlı iş yok.</p>
                             @endforelse
                         </div>
+
+                        
 
                         <div class="tab-pane fade" id="ban">
                             <div class="d-flex align-items-center gap-3 flex-wrap">

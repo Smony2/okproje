@@ -208,6 +208,22 @@
                     <span>İş Teslimleri</span>
                 </a>
             </li>
+
+            <li class="sidebar-menu-group-title mt-20">Mesajlaşma</li>
+            <li>
+                <a href="{{ route('admin.mesajlar.index') }}" class="{{ request()->routeIs('admin.mesajlar.*') ? 'active-page' : '' }}">
+                    <iconify-icon icon="mdi:message-text-outline" class="menu-icon"></iconify-icon>
+                    <span>Özel Mesajlar</span>
+                </a>
+            </li>
+
+            <li class="sidebar-menu-group-title mt-20">İstatistikler</li>
+            <li>
+                <a href="{{ route('admin.istatistik.katipler') }}" class="{{ request()->routeIs('admin.istatistik.katipler') ? 'active-page' : '' }}">
+                    <iconify-icon icon="mdi:chart-line" class="menu-icon"></iconify-icon>
+                    <span>Katip İstatistikleri</span>
+                </a>
+            </li>
             <li>
                 <a href="{{ route('admin.kazanc.katip') }}">
                     <iconify-icon icon="mdi:wallet-outline" class="menu-icon"></iconify-icon>
