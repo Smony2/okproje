@@ -149,7 +149,6 @@ class KatipChatController extends Controller
 
         // İçerik filtreleme
         $filterService = new MessageFilterService();
-        $phoneWarning = false;
         
         if (!empty($request->contenti)) {
             // Küfür kontrolü
@@ -165,7 +164,12 @@ class KatipChatController extends Controller
             // Telefon numarası kontrolü
             $phoneCheck = $filterService->containsPhoneNumber($request->contenti);
             if ($phoneCheck['contains']) {
-                $phoneWarning = true;
+                // Telefon numarası tespit edildiğinde mesajı engelle
+                return response()->json([
+                    'status' => 'error',
+                    'type' => 'phone_number',
+                    'message' => 'Mesajınızda telefon numarası tespit edildi. Telefon numarası paylaşımı yasaktır ve bu işlem sistem yöneticilerine bildirilecektir.'
+                ], 422);
             }
         }
 
@@ -223,23 +227,6 @@ class KatipChatController extends Controller
         }
 
         broadcast(new \App\Events\MessageSent($message));
-        
-        // Telefon numarası uyarısı varsa admin'e bildir
-        if ($phoneWarning) {
-            Notification::create([
-                'user_type' => 'Admin',
-                'user_id' => 1, // Admin ID
-                'type' => 'phone_number_shared',
-                'message' => "Katip {$user->name} bir mesajda telefon numarası paylaştı.",
-            ]);
-            
-            return response()->json([
-                'status' => 'success',
-                'warning' => 'phone_number',
-                'message' => $message,
-                'warning_text' => 'Telefon numarası paylaşımı tespit edildi. Bu işlem sistem yöneticilerine bildirilecektir.'
-            ], 200);
-        }
         
         return response()->json([
             'status' => 'success',

@@ -1541,15 +1541,17 @@
 
                         const result = await response.json();
                         
-                        // Hata kontrolü
-                        if (!response.ok || result.status === 'error') {
-                            if (result.type === 'profanity') {
-                                showNotification(result.message || 'Mesajınız uygunsuz içerik barındırıyor ve gönderilemedi.', 'danger');
-                            } else {
-                                showNotification(result.error || result.message || 'Mesaj gönderilemedi', 'danger');
-                            }
-                            return;
-                        }
+        // Hata kontrolü
+        if (!response.ok || result.status === 'error') {
+            if (result.type === 'profanity') {
+                showNotification(result.message || 'Mesajınız uygunsuz içerik barındırıyor ve gönderilemedi.', 'danger');
+            } else if (result.type === 'phone_number') {
+                showNotification(result.message || 'Mesajınızda telefon numarası tespit edildi. Telefon numarası paylaşımı yasaktır.', 'danger');
+            } else {
+                showNotification(result.error || result.message || 'Mesaj gönderilemedi', 'danger');
+            }
+            return;
+        }
 
                         // Başarılı gönderim
                         this.querySelector('input[name="content"]').value = '';
@@ -1557,12 +1559,7 @@
                         fileUploadBtn.innerHTML = '<iconify-icon icon="solar:gallery-linear" class="fs-5"></iconify-icon>';
                         fileUploadBtn.classList.remove('text-success');
                         
-                        // Telefon numarası uyarısı varsa göster
-                        if (result.warning === 'phone_number') {
-                            showNotification(result.warning_text || 'Telefon numarası paylaşımı tespit edildi. Bu işlem sistem yöneticilerine bildirilecektir.', 'warning');
-                        } else {
-                            showNotification('Mesaj gönderildi', 'success');
-                        }
+                        showNotification('Mesaj gönderildi', 'success');
                     } catch (error) {
                         console.error('Hata:', error.message);
                         showNotification(`Mesaj gönderilemedi: ${error.message}`, 'danger');
