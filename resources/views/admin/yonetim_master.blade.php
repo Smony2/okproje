@@ -270,8 +270,15 @@
 
             <li>
                 <a href="{{route('admin.site-settings.index')}}">
-                    <iconify-icon icon="mdi:account-edit-outline" class="menu-icon"></iconify-icon>
+                    <iconify-icon icon="mdi:cog-outline" class="menu-icon"></iconify-icon>
                     <span>Site Ayarları</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="{{ route('admin.yasakli-kelimeler.index') }}" class="{{ request()->routeIs('admin.yasakli-kelimeler.*') ? 'active-page' : '' }}">
+                    <iconify-icon icon="mdi:text-box-remove-outline" class="menu-icon"></iconify-icon>
+                    <span>Yasaklı Kelimeler</span>
                 </a>
             </li>
 

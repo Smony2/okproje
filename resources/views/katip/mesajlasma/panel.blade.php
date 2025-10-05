@@ -8,6 +8,45 @@
 @section('cssler')
     <link rel="stylesheet" href="{{ asset('assets/css/chat12.css') }}">
     <style>
+        /* Toast Notification Styles */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            min-width: 300px;
+            max-width: 500px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 10000;
+            opacity: 0;
+            transform: translateX(400px);
+            transition: all 0.3s ease-out;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .notification.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .notification.error {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .notification.warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
         @keyframes slideInRight {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -1274,16 +1313,26 @@
             if (!notification) {
                 notification = document.createElement('div');
                 notification.classList.add('notification');
-                if (type === 'error' || type === 'danger') {
-                    notification.classList.add('error');
-                }
                 document.body.appendChild(notification);
             }
+            
+            // Reset classes
+            notification.className = 'notification';
+            
+            // Add type class
+            if (type === 'error' || type === 'danger') {
+                notification.classList.add('error');
+            } else if (type === 'warning') {
+                notification.classList.add('warning');
+            } else if (type === 'success') {
+                notification.classList.add('success');
+            }
+            
             notification.textContent = message;
             notification.classList.add('visible');
             setTimeout(() => {
                 notification.classList.remove('visible');
-            }, 3000);
+            }, 4000); // 4 saniye göster (telefon uyarısı için biraz daha uzun)
         }
 
         function loadConversation(id, url, clickedEl) {
@@ -1581,17 +1630,30 @@
                             body: formData
                         });
 
-                        if (!response.ok) {
-                            const errorData = await response.json();
-                            throw new Error(errorData.error || 'Mesaj gönderilemedi');
+                        const result = await response.json();
+                        
+                        // Hata kontrolü
+                        if (!response.ok || result.status === 'error') {
+                            if (result.type === 'profanity') {
+                                showNotification(result.message || 'Mesajınız uygunsuz içerik barındırıyor ve gönderilemedi.', 'danger');
+                            } else {
+                                showNotification(result.error || result.message || 'Mesaj gönderilemedi', 'danger');
+                            }
+                            return;
                         }
 
-                        const result = await response.json();
+                        // Başarılı gönderim
                         this.querySelector('input[name="content"]').value = '';
                         this.querySelector('input[name="file"]').value = '';
                         fileUploadBtn.innerHTML = '<iconify-icon icon="solar:gallery-linear" class="fs-5"></iconify-icon>';
                         fileUploadBtn.classList.remove('text-success');
-                        showNotification('Mesaj gönderildi', 'success');
+                        
+                        // Telefon numarası uyarısı varsa göster
+                        if (result.warning === 'phone_number') {
+                            showNotification(result.warning_text || 'Telefon numarası paylaşımı tespit edildi. Bu işlem sistem yöneticilerine bildirilecektir.', 'warning');
+                        } else {
+                            showNotification('Mesaj gönderildi', 'success');
+                        }
                     } catch (error) {
                         console.error('Hata:', error.message);
                         showNotification(`Mesaj gönderilemedi: ${error.message}`, 'danger');

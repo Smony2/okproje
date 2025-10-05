@@ -6,6 +6,8 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\MessageAttachment;
 use App\Models\Avukat;
+use App\Models\Notification;
+use App\Services\MessageFilterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -145,6 +147,28 @@ class KatipChatController extends Controller
             return response()->json(['error' => 'Mesaj veya resim gereklidir'], 422);
         }
 
+        // İçerik filtreleme
+        $filterService = new MessageFilterService();
+        $phoneWarning = false;
+        
+        if (!empty($request->contenti)) {
+            // Küfür kontrolü
+            $profanityCheck = $filterService->containsProfanity($request->contenti);
+            if ($profanityCheck['contains']) {
+                return response()->json([
+                    'status' => 'error',
+                    'type' => 'profanity',
+                    'message' => 'Mesajınız uygunsuz içerik barındırıyor ve gönderilemedi.'
+                ], 422);
+            }
+            
+            // Telefon numarası kontrolü
+            $phoneCheck = $filterService->containsPhoneNumber($request->contenti);
+            if ($phoneCheck['contains']) {
+                $phoneWarning = true;
+            }
+        }
+
         $user = auth('katip')->user();
 
         $message = Message::create([
@@ -199,7 +223,28 @@ class KatipChatController extends Controller
         }
 
         broadcast(new \App\Events\MessageSent($message));
-        return response()->json(['message' => $message], 200);
+        
+        // Telefon numarası uyarısı varsa admin'e bildir
+        if ($phoneWarning) {
+            Notification::create([
+                'user_type' => 'Admin',
+                'user_id' => 1, // Admin ID
+                'type' => 'phone_number_shared',
+                'message' => "Katip {$user->name} bir mesajda telefon numarası paylaştı.",
+            ]);
+            
+            return response()->json([
+                'status' => 'success',
+                'warning' => 'phone_number',
+                'message' => $message,
+                'warning_text' => 'Telefon numarası paylaşımı tespit edildi. Bu işlem sistem yöneticilerine bildirilecektir.'
+            ], 200);
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => $message
+        ], 200);
     }
 
     private function getReceiverId($conversationId)

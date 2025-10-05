@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\KatipController;
 use App\Http\Controllers\Admin\AdminTransactionController;
 use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\Admin\MessageController;
+use App\Http\Controllers\Admin\BannedWordController;
 
 // Admin giriş yaptıktan sonra
 Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -165,5 +166,11 @@ Route::middleware(['auth:admin', 'role:superadmin'])->prefix('admin')->name('adm
     // Özel Mesajlar
     Route::get('mesajlar', [MessageController::class, 'index'])->name('mesajlar.index');
     Route::get('mesajlar/{conversation}', [MessageController::class, 'show'])->name('mesajlar.show');
+
+    // Yasaklı Kelimeler
+    Route::get('yasakli-kelimeler', [BannedWordController::class, 'index'])->name('yasakli-kelimeler.index');
+    Route::post('yasakli-kelimeler', [BannedWordController::class, 'store'])->name('yasakli-kelimeler.store');
+    Route::delete('yasakli-kelimeler/{id}', [BannedWordController::class, 'destroy'])->name('yasakli-kelimeler.destroy');
+    Route::patch('yasakli-kelimeler/{id}/toggle', [BannedWordController::class, 'toggle'])->name('yasakli-kelimeler.toggle');
 
 });
