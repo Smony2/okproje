@@ -29,23 +29,6 @@ class DashboardController extends Controller
         $iptalEdilenIsler = Isler::where('durum', 'iptal')->count(); // 'iptal edildi' yerine 'iptal' kullanıldı, eğer tablo yapısında durum 'iptal' ise
         $toplamKazanc = Isler::sum('ucret');
 
-        // Aylık iş dağılımı
-        $monthlyJobs = Isler::select(
-            \DB::raw('MONTH(created_at) as ay'),
-            \DB::raw('COUNT(*) as adet')
-        )
-            ->whereYear('created_at', \Carbon\Carbon::now()->year)
-            ->groupBy('ay')
-            ->orderBy('ay')
-            ->pluck('adet', 'ay')
-            ->toArray();
-
-        // Eksik ayları 0'la doldur
-        $aylikDizi = array_fill(1, 12, 0);
-        foreach ($monthlyJobs as $ay => $adet) {
-            $aylikDizi[$ay] = $adet;
-        }
-        $aylikDizi = array_values($aylikDizi); // Dizi indekslerini sıfırlıyoruz
 
         // Son 10 avukat puanı
         $sonAvukatPuanlari = \App\Models\AvukatPuan::with(['avukat'])
@@ -74,16 +57,6 @@ class DashboardController extends Controller
             ->take(10)
             ->get();
 
-        $adliyeDagilimi = \App\Models\Isler::select('adliye_id', \DB::raw('COUNT(*) as count'))
-            ->with('adliye')
-            ->groupBy('adliye_id')
-            ->orderByDesc('count')
-            ->take(5)
-            ->get()
-            ->mapWithKeys(function ($item) {
-                return [$item->adliye->ad ?? 'Bilinmeyen' => $item->count];
-            })
-            ->toArray();
 
         $sonYatirimlar = \App\Models\AvukatTransaction::with('avukat')
             ->where('type', 'deposit')
@@ -104,11 +77,9 @@ class DashboardController extends Controller
             'tamamlananIsler',
             'iptalEdilenIsler',
             'toplamKazanc',
-            'aylikDizi',
             'sonAvukatPuanlari',
             'sonKatipPuanlari',
             'sonTeklifler',
-            'adliyeDagilimi',
             'sonYatirimlar',
             'sonIsler'
         ));

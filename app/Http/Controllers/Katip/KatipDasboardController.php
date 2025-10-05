@@ -119,127 +119,10 @@ class KatipDasboardController extends Controller
         $bildirimler = $katip->notifications()->latest()->take(8)->get();
         $okunmamisBildirimSayisi = $katip->unreadNotifications()->count();
 
-        // 1. İş Türü Dağılımı - DÜZELTME
-        try {
-            $isTuruDagilimi = \App\Models\Isler::where('katip_id', $katipId)
-                ->select('islem_tipi', DB::raw('COUNT(*) as adet'))
-                ->groupBy('islem_tipi')
-                ->orderBy('adet', 'desc')
-                ->take(6)
-                ->get();
-        } catch (\Exception $e) {
-            // Hata durumunda örnek veri
-            $isTuruDagilimi = collect([
-                (object)['islem_tipi' => 'Dilekçe', 'adet' => 15],
-                (object)['islem_tipi' => 'Dosya Takip', 'adet' => 12],
-                (object)['islem_tipi' => 'Duruşma', 'adet' => 8],
-                (object)['islem_tipi' => 'İnfaz', 'adet' => 5],
-            ]);
-        }
 
-        // 2. Haftalık Trend (Son 4 hafta) - DÜZELTME
-        $haftalikTrend = [];
-        try {
-            for ($i = 3; $i >= 0; $i--) {
-                $haftaBaslangic = now()->subWeeks($i)->startOfWeek();
-                $haftaBitis = now()->subWeeks($i)->endOfWeek();
 
-                // Ayrı sorgular ile hata önleme
-                $toplamHaftalik = \App\Models\Isler::where('katip_id', $katipId)
-                    ->whereBetween('created_at', [$haftaBaslangic, $haftaBitis])
-                    ->count();
 
-                $tamamlananHaftalik = \App\Models\Isler::where('katip_id', $katipId)
-                    ->whereBetween('created_at', [$haftaBaslangic, $haftaBitis])
-                    ->where('durum', 'tamamlandi')
-                    ->count();
 
-                $haftalikTrend[] = [
-                    'hafta' => $haftaBaslangic->format('d.m') . '-' . $haftaBitis->format('d.m'),
-                    'toplam' => $toplamHaftalik,
-                    'tamamlanan' => $tamamlananHaftalik
-                ];
-            }
-        } catch (\Exception $e) {
-            // Hata durumunda örnek veri
-            $haftalikTrend = [
-                ['hafta' => '13.01-19.01', 'toplam' => 5, 'tamamlanan' => 3],
-                ['hafta' => '20.01-26.01', 'toplam' => 8, 'tamamlanan' => 6],
-                ['hafta' => '27.01-02.02', 'toplam' => 12, 'tamamlanan' => 9],
-                ['hafta' => '03.02-09.02', 'toplam' => 7, 'tamamlanan' => 5],
-            ];
-        }
-
-        // 3. Adliye Bazında İş Dağılımı - DÜZELTME
-        try {
-            $adliyeDagilimi = \App\Models\Isler::where('katip_id', $katipId)
-                ->join('adliyeler', 'isler.adliye_id', '=', 'adliyeler.id')
-                ->select('adliyeler.ad as adliye_adi', DB::raw('COUNT(isler.id) as is_sayisi'))
-                ->groupBy('adliyeler.id', 'adliyeler.ad')
-                ->orderBy('is_sayisi', 'desc')
-                ->take(5)
-                ->get();
-        } catch (\Exception $e) {
-            // Hata durumunda örnek veri
-            $adliyeDagilimi = collect([
-                (object)['adliye_adi' => 'Ankara Adliyesi', 'is_sayisi' => 25],
-                (object)['adliye_adi' => 'İstanbul Adliyesi', 'is_sayisi' => 18],
-                (object)['adliye_adi' => 'İzmir Adliyesi', 'is_sayisi' => 12],
-            ]);
-        }
-
-        // 4. Saatlik Aktivite (Son 7 gün) - DÜZELTME
-        try {
-            $saatlikAktivite = \App\Models\Isler::where('katip_id', $katipId)
-                ->where('created_at', '>=', now()->subDays(7))
-                ->selectRaw('HOUR(created_at) as saat, COUNT(*) as adet')
-                ->groupBy(DB::raw('HOUR(created_at)'))
-                ->orderBy('saat')
-                ->get()
-                ->pluck('adet', 'saat')
-                ->toArray();
-        } catch (\Exception $e) {
-            $saatlikAktivite = [];
-        }
-
-        // 24 saatlik veri hazırla
-        $saatlikVeri = [];
-        for ($saat = 0; $saat < 24; $saat++) {
-            $saatlikVeri[] = $saatlikAktivite[$saat] ?? 0;
-        }
-
-        // Eğer tüm saatler 0 ise örnek veri
-        if (array_sum($saatlikVeri) == 0) {
-            $saatlikVeri = [2, 1, 0, 0, 0, 0, 1, 3, 5, 8, 12, 15, 18, 16, 14, 11, 8, 6, 4, 3, 2, 1, 1, 1];
-        }
-
-        // 5. Aylık Kazanç Trendi (Son 6 ay) - DÜZELTME
-        $kazancTrendi = [];
-        try {
-            for ($i = 5; $i >= 0; $i--) {
-                $ay = now()->subMonths($i);
-                $kazanc = \App\Models\KatipTransaction::where('katip_id', $katipId)
-                    ->where('type', 'kazanc')
-                    ->whereYear('created_at', $ay->year)
-                    ->whereMonth('created_at', $ay->month)
-                    ->sum('amount') ?? 0;
-
-                $kazancTrendi[] = [
-                    'ay' => $ay->format('M'),
-                    'kazanc' => (float) $kazanc
-                ];
-            }
-        } catch (\Exception $e) {
-            // Hata durumunda örnek veri
-            $kazancTrendi = [
-                ['ay' => 'Ağu', 'kazanc' => 1200],
-                ['ay' => 'Eyl', 'kazanc' => 1800],
-                ['ay' => 'Eki', 'kazanc' => 1500],
-                ['ay' => 'Kas', 'kazanc' => 2200],
-                ['ay' => 'Ara', 'kazanc' => 2800],
-                ['ay' => 'Oca', 'kazanc' => 3200],
-            ];
-        }
 
         // Eski puan sistemi için backward compatibility
         $puanlar = $puanDagilimi['veriler'];
@@ -248,8 +131,7 @@ class KatipDasboardController extends Controller
             'toplamIs', 'bekleyenIs', 'devamEdenIs', 'tamamlananIs', 'toplamKazanc',
             'yorumYapilanAvukat', 'islerim', 'aylikVeriler', 'puanDagilimi',
             'performansMetrikleri', 'sonTeklifler', 'sonKazanc',
-            'bildirimler', 'okunmamisBildirimSayisi', 'isTuruDagilimi',
-            'haftalikTrend', 'adliyeDagilimi', 'saatlikVeri', 'kazancTrendi',
+            'bildirimler', 'okunmamisBildirimSayisi',
             'puanlar' // Eski sistem için
         ));
     }
